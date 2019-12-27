@@ -106,10 +106,10 @@ if { $::argc > 0 } {
 }
 
 # Set the directory path for the original project from where this script was exported
-set orig_proj_dir "[file normalize "$origin_dir/MyLittleProcessor"]"
+set orig_proj_dir "[file normalize "$origin_dir"]"
 
 # Create project
-create_project ${_xil_proj_name_} ${origin_dir}/${_xil_proj_name_} -part xc7a35ticsg324-1L
+create_project ${_xil_proj_name_} ${origin_dir} -part xc7a35ticsg324-1L
 
 # Set the directory path for the new project
 set proj_dir [get_property directory [current_project]]
