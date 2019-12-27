@@ -1,55 +1,46 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 12/24/2019 11:41:09 PM
-// Design Name: 
-// Module Name: alu_registers
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+
+`ifndef ALU_REGISTERS_SV
+`define ALU_REGISTERS_SV
+
 `include "constants_pkg.sv"
 
 import constants_pkg::*;
 
-module alu_registers(
+module alu_registers #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
     input wire clk,
     input wire reset,
-    input wire [2:0] addr_a,
-    input wire [2:0] addr_b,
-    input wire [2:0] addr_r,
-    input wire [7:0] data_in,
-    output logic [7:0] data_out,
+    input wire [ADDR_BITS-1:0] addr_a,
+    input wire [ADDR_BITS-1:0] addr_b,
+    input wire [ADDR_BITS-1:0] addr_r,
+    input wire [DATA_BITS-1:0] data_in,
+    output logic [DATA_BITS-1:0] data_out,
     input constants_pkg::ALUOp op
     );
         
-    register_bus rd0_bus();
-    register_bus rd1_bus();
-    register_bus wr_bus();
+    register_bus #(.ADDR_BITS(ADDR_BITS), 
+                   .DATA_BITS(DATA_BITS)) rd0_bus();
+    register_bus #(.ADDR_BITS(ADDR_BITS), 
+                   .DATA_BITS(DATA_BITS)) rd1_bus();
+    register_bus #(.ADDR_BITS(ADDR_BITS), 
+                   .DATA_BITS(DATA_BITS)) wr_bus();
     logic subtract;
     logic carry;
     
-    alu arith_unit(.a(rd0_bus.data), 
+    alu #(.DATA_BITS(DATA_BITS)) 
+        arith_unit(.a(rd0_bus.data), 
                    .b(rd1_bus.data), 
                    .cin(subtract), 
                    .result(wr_bus.data), 
                    .cout(carry));
 
-    register_file registers(.clk(clk), 
-                            .reset(reset),
-                            .rd0_bus(rd0_bus), 
-                            .rd1_bus(rd1_bus), 
-                            .wr_bus(wr_bus));
+    register_file #(.ADDR_BITS(ADDR_BITS), 
+                    .DATA_BITS(DATA_BITS))
+        registers(.clk(clk), 
+                .reset(reset),
+                .rd0_bus(rd0_bus), 
+                .rd1_bus(rd1_bus), 
+                .wr_bus(wr_bus));
 
     assign data_out = rd0_bus.data;
 
@@ -101,3 +92,5 @@ module alu_registers(
         endcase
     end
 endmodule
+
+`endif

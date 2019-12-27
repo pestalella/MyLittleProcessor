@@ -45,7 +45,6 @@ module tb_alu_registers();
 //        .data_out(data_out),
         .op(op));
 
-
     task check_register_value(input bit [2:0] reg_addr, input bit [7:0] expected_value);
         @(posedge clk) addr_a = reg_addr;
         op = REG_READ;
