@@ -42,8 +42,8 @@ module register(
     always @(posedge reset)
         bits <= 0;
     
-    assign data_out0 = out0_en? bits : 'bz;    
-    assign data_out1 = out1_en? bits : 'bz;    
+    assign data_out0 = out0_en? bits : {8{1'bz}};    
+    assign data_out1 = out1_en? bits : {8{1'bz}};    
 endmodule
 
 `endif
