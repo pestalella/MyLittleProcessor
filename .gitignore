@@ -1,7 +1,8 @@
 .Xil
 MyLittleProcessor.cache
 MyLittleProcessor.hw
-MyLittleProcessor.sim
 MyLittleProcessor.ip_user_files
+MyLittleProcessor.sim
+MyLittleProcessor.runs
 vivado*
 *.wcfg

@@ -1,7 +1,7 @@
-`timescale 1ns / 1ps
-
 `ifndef REGISTER_FILE
 `define REGISTER_FILE
+
+`timescale 1ns / 1ps
 
 `include "register_bus.sv"
 `include "register.sv"
