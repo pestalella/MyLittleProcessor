@@ -17,7 +17,7 @@ module tb_exec_unit ();
         counter = 0;
 
         for (int i = 0; i < 128; i++) begin
-            dut.memory.memory[i] = 'h10 + i;
+            dut.memory.memory[i] = i;
         end
         // reset the DUT
         reset = 1;
