@@ -9,9 +9,9 @@ module register #(parameter DATA_BITS  = 8) (
     input wire load,
     input wire [DATA_BITS-1:0] data_in,
     input wire out0_en,
-    output logic [DATA_BITS-1:0] data_out0,
+    output wire [DATA_BITS-1:0] data_out0,
     input wire out1_en,
-    output logic [DATA_BITS-1:0] data_out1
+    output wire [DATA_BITS-1:0] data_out1
     );
     
     bit [DATA_BITS-1:0] bits;

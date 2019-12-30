@@ -18,80 +18,87 @@ module alu_registers #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
     input constants_pkg::ALUOp op
     );
         
-    register_bus #(.ADDR_BITS(ADDR_BITS), 
-                   .DATA_BITS(DATA_BITS)) rd0_bus();
-    register_bus #(.ADDR_BITS(ADDR_BITS), 
-                   .DATA_BITS(DATA_BITS)) rd1_bus();
-    register_bus #(.ADDR_BITS(ADDR_BITS), 
-                   .DATA_BITS(DATA_BITS)) wr_bus();
     logic subtract;
     logic carry;
-    
+    wire [DATA_BITS-1:0] alu_input_a, alu_input_b, alu_output, register_file_input;
+    logic rd0_enable, rd1_enable, wr_enable;
+    logic [ADDR_BITS-1:0] rd0_addr, rd1_addr, wr_addr;
+
+    bit reg_input_sel;
+
     alu #(.DATA_BITS(DATA_BITS)) 
-        arith_unit(.clk(clk), 
-                   .a(rd0_bus.data), 
-                   .b(rd1_bus.data), 
+        arith_unit(.a(alu_input_a), 
+                   .b(alu_input_b), 
                    .cin(subtract), 
-                   .result(wr_bus.data), 
+                   .result(alu_output), 
                    .cout(carry));
 
     register_file #(.ADDR_BITS(ADDR_BITS), 
                     .DATA_BITS(DATA_BITS))
         registers(.clk(clk), 
                   .reset(reset),
-                  .rd0_bus(rd0_bus), 
-                  .rd1_bus(rd1_bus), 
-                  .wr_bus(wr_bus));
+                  .rd0_addr(rd0_addr), 
+                  .rd1_addr(rd1_addr), 
+                  .wr_addr(wr_addr), 
+                  .rd0_data(alu_input_a), 
+                  .rd1_data(alu_input_b),
+                  .wr_data(register_file_input),
+                  .rd0_enable(rd0_enable), 
+                  .rd1_enable(rd1_enable),
+                  .wr_enable(wr_enable));
     
-    assign data_out = rd0_bus.data;
-    bit waiting_result;
+    reg_mux2to1 reg_input_mux(.sel(reg_input_sel),
+                              .in0(alu_output),
+                              .in1(data_in),
+                              .out(register_file_input));
+
+    assign data_out = registers.rd0_data;
 
     initial begin
         subtract <= 0;
-        rd0_bus.enable <= 0;
-        rd1_bus.enable <= 0;
-        wr_bus.enable <= 0;
-        waiting_result <= 0;
+        rd0_enable <= 0;
+        rd1_enable <= 0;
+        wr_enable <= 0;
+        reg_input_sel <= 0;
     end
 
     always @(posedge clk) begin
-        if (waiting_result) begin
-            wr_bus.addr <= addr_r;
-            wr_bus.enable <= 1;
-            waiting_result <= 0;
-        end else begin
-            case (op)
-                REG_READ: begin  // data_out = rA
-                    rd0_bus.addr <= addr_a;
-                    rd0_bus.enable <= 1;
-                    rd1_bus.enable <= 0;
-                    wr_bus.enable <= 0;
-                    end
-                REG_WRITE: begin  // rA = data_in
-                    wr_bus.addr <= addr_a;
-                    wr_bus.data <= data_in;
-                    wr_bus.enable <= 1;
-                    rd0_bus.enable <= 0;
-                    rd1_bus.enable <= 0;
-                    end
-                ADD: begin  // rR = rA + rB;
-                    rd0_bus.addr <= addr_a;
-                    rd0_bus.enable <= 1;
-                    rd1_bus.addr <= addr_b;
-                    rd1_bus.enable <= 1;
-                    subtract <= 0;
-                    waiting_result <= 1;
-                    end
-                SUB: begin  // rR = rA - rB
-                    rd0_bus.addr <= addr_a;
-                    rd0_bus.enable <= 1;
-                    rd1_bus.addr <= addr_b;
-                    rd1_bus.enable <= 1;
-                    subtract <= 1;
-                    waiting_result <= 1;
-                    end
-            endcase
-        end
+        case (op)
+            REG_READ: begin  // data_out = rA
+                rd0_addr <= addr_a;
+                rd0_enable <= 1;
+                rd1_enable <= 0;
+                wr_enable <= 0;
+                reg_input_sel <= 0;
+                end
+            REG_WRITE: begin  // rA = data_in
+                wr_addr <= addr_a;
+                reg_input_sel <= 1;
+                wr_enable <= 1;
+                rd0_enable <= 0;
+                rd1_enable <= 0;
+                end
+            ADD: begin  // rR = rA + rB;
+                rd0_addr <= addr_a;
+                rd1_addr <= addr_b;
+                wr_addr <= addr_r;
+                rd0_enable <= 1;
+                rd1_enable <= 1;
+                wr_enable <= 1;
+                subtract <= 0;
+                reg_input_sel <= 0;
+                end
+            SUB: begin  // rR = rA - rB
+                rd0_addr <= addr_a;
+                rd1_addr <= addr_b;
+                wr_addr <= addr_r;
+                rd0_enable <= 1;
+                rd1_enable <= 1;
+                wr_enable <= 1;
+                subtract <= 1;
+                reg_input_sel <= 0;
+                end
+        endcase
     end
 endmodule
 

@@ -18,7 +18,7 @@ module tb_alu_registers();
     constants_pkg::ALUOp op;
     
     alu_registers dut(
-        .clk(clk), 
+        .clk(clk),
         .reset(reset), 
         .addr_a(addr_a), 
         .addr_b(addr_b),
@@ -75,6 +75,7 @@ module tb_alu_registers();
         addr_b = 2;
         addr_r = 3;
         op = ADD;
+        @(posedge clk);
         @(posedge clk);
         @(posedge clk) addr_a = 2;
         addr_b = 3;

@@ -14,7 +14,7 @@ module tb_alu();
     logic [7:0] result;
     logic cout;
     
-    alu dut(.clk(clk), .a(a), .b(b), .cin(cin), 
+    alu dut(.a(a), .b(b), .cin(cin), 
             .result(result), .cout(cout));
     
     initial begin
