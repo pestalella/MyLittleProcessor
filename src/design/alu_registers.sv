@@ -14,7 +14,7 @@ module alu_registers #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
     input wire [ADDR_BITS-1:0] addr_b,
     input wire [ADDR_BITS-1:0] addr_r,
     input wire [DATA_BITS-1:0] data_in,
-    output logic [DATA_BITS-1:0] data_out,
+    output wire [DATA_BITS-1:0] data_out,
     input constants_pkg::ALUOp op
     );
         
