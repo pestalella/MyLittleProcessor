@@ -3,8 +3,10 @@
 
 `timescale 1ns / 1ps
 
-`include "register.sv"
 `include "constants_pkg.sv"
+`include "isa_definition.sv"
+
+import isa_pkg::*;
 
 import constants_pkg::*;
 
@@ -113,7 +115,21 @@ module exec_unit #(parameter DATA_BITS = 8) (
     end
 
     always @(posedge instruction_ready) begin
-        $display("Instruction ready: ir=%h%h", ir[15:8], ir[7:0]);
+        $display("Instruction ready: ir=%h%h opcode=%04b", ir[15:8], ir[7:0], ir[15:12]);
+        case (ir[15:12])
+            MOVIR: $display("mov reg #imm");
+            MOVRR: $display("mov reg reg");
+            MOVMR: $display("mov reg @address");
+            MOVRM: $display("mov @address reg");
+            ADDRR: $display("add reg reg reg");
+             ADDI: $display("add reg #imm");
+            SUBRR: $display("sub reg reg reg");
+             SUBI: $display("sub reg #imm");
+              JZI: $display("jz #offset");
+              JZR: $display("jz reg");
+              NOP: $display("nop");
+          default: $display("Invalid opcode %b", ir[15:12]);
+        endcase
     end
 
 endmodule
