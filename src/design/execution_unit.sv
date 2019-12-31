@@ -6,44 +6,14 @@
 `include "constants_pkg.sv"
 `include "isa_definition.sv"
 
-import isa_pkg::*;
-
 import constants_pkg::*;
+import isa_pkg::*;
 
 module exec_unit #(parameter DATA_BITS = 8) (
     input wire clk,
     input wire reset
 );
-    // register_bus #(.ADDR_BITS(ADDR_BITS),
-    //                .DATA_BITS(DATA_BITS)) rd0_bus();
-    // register_bus #(.ADDR_BITS(ADDR_BITS),
-    //                .DATA_BITS(DATA_BITS)) rd1_bus();
-    // register_bus #(.ADDR_BITS(ADDR_BITS),
-    //                .DATA_BITS(DATA_BITS)) wr_bus();
-    // logic subtract;
-    // logic carry;
 
-    // alu #(.DATA_BITS(DATA_BITS))
-    //     arith_unit(.a(rd0_bus.data),
-    //                .b(rd1_bus.data),
-    //                .cin(subtract),
-    //                .result(wr_bus.data),
-    //                .cout(carry));
-
-    // register_file #(.ADDR_BITS(ADDR_BITS),
-    //                 .DATA_BITS(DATA_BITS))
-    //     registers(.clk(clk),
-    //             .reset(reset),
-    //             .rd0_bus(rd0_bus),
-    //             .rd1_bus(rd1_bus),
-    //             .wr_bus(wr_bus));
-
-    // assign data_out = rd0_bus.data;
-
-
-    // register #(.DATA_BITS(8)) ip(  // 8-bit instruction pointer
-    //     .clk(clk),
-    //     .reset(reset));
     bit [constants_pkg::INSTRUCTION_POINTER_BITS-1:0] ip;
     bit [15:0] ir;
 
@@ -51,6 +21,9 @@ module exec_unit #(parameter DATA_BITS = 8) (
     logic [constants_pkg::MEMORY_DATA_BITS-1:0] mem_data;
     logic [constants_pkg::MEMORY_DATA_BITS-1:0] data_read;
     logic mem_read_en, mem_write_en;
+    bit instruction_ready;
+    enum bit [2:0] {IDLE, READ_HIGH_IR, READ_LOW_IR, DECODE} prev_state, state;
+
 
     ram #(.ADDR_BITS(constants_pkg::MEMORY_ADDRESS_BITS), 
           .DATA_BITS(constants_pkg::MEMORY_DATA_BITS))
@@ -59,11 +32,52 @@ module exec_unit #(parameter DATA_BITS = 8) (
                .write_en(mem_write_en));
     assign memory.data = mem_data;
 
-    bit instruction_ready;
-    enum bit [2:0] {IDLE, READ_HIGH_IR, READ_LOW_IR, DECODE} prev_state, state;
+
+    logic subtract;
+    logic carry;
+    wire [REGISTER_DATA_BITS-1:0] alu_input_a, alu_input_b, alu_output, 
+                                  register_file_input, regfile_rd0_data;
+    bit [REGISTER_DATA_BITS-1:0] inst_immediate;
+    bit [REGISTER_ADDRESS_BITS-1:0] reg_rd0_addr, reg_rd1_addr, reg_wr_addr;
+    bit reg_rd0_en, reg_rd1_en, reg_wr_en;
+    bit alu_inputA_sel, reg_input_sel;
+
+    alu #(.DATA_BITS(REGISTER_DATA_BITS)) 
+        arith_unit(.a(alu_input_a), 
+                   .b(alu_input_b), 
+                   .cin(subtract), 
+                   .result(alu_output), 
+                   .cout(carry));
+
+    reg_mux2to1 alu_inputA_mux(.sel(alu_inputA_sel),
+                               .in0(regfile_rd0_data),
+                               .in1(inst_immediate),
+                               .out(alu_input_a));
+
+    register_file #(.ADDR_BITS(REGISTER_ADDRESS_BITS), 
+                    .DATA_BITS(REGISTER_DATA_BITS))
+        registers(.clk(clk), 
+                  .reset(reset),
+
+                  .rd0_enable(reg_rd0_en), 
+                  .rd0_addr(reg_rd0_addr), 
+                  .rd0_data(regfile_rd0_data), 
+
+                  .rd1_enable(reg_rd1_en),
+                  .rd1_addr(reg_rd1_addr),
+                  .rd1_data(alu_input_b),
+
+                  .wr_enable(reg_wr_en),
+                  .wr_addr(reg_wr_addr),
+                  .wr_data(register_file_input));
+    
+    reg_mux2to1 reg_input_mux(.sel(reg_input_sel),
+                              .in0(alu_output),
+                              .in1(inst_immediate),
+                              .out(register_file_input));
 
     always @(posedge reset) begin
-        ip <= 10;
+        ip <= 0;
         ir <= 0;
         mem_address <= 0;
         mem_data <= 'bzz;
@@ -117,7 +131,15 @@ module exec_unit #(parameter DATA_BITS = 8) (
     always @(posedge instruction_ready) begin
         $display("Instruction ready: ir=%h%h opcode=%04b", ir[15:8], ir[7:0], ir[15:12]);
         case (ir[15:12])
-            MOVIR: $display("mov reg #imm");
+            MOVIR: begin
+                $display("mov r%0d #%h", ir[11:8], ir[7:0]);
+                reg_wr_addr    <= ir[11:8];
+                inst_immediate <= ir[7:0];
+                reg_input_sel  <= 1;
+                reg_wr_en      <= 1;
+                reg_rd0_en     <= 0;
+                reg_rd1_en     <= 0;
+            end
             MOVRR: $display("mov reg reg");
             MOVMR: $display("mov reg @address");
             MOVRM: $display("mov @address reg");
