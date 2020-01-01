@@ -150,10 +150,14 @@ module exec_unit #(parameter DATA_BITS = 8) (
         // By default, pc = pc + 2
         pc_offset_sel <= 0;
 
+        reg_wr_en      <= 0;
+        reg_rd0_en     <= 0;
+        reg_rd1_en     <= 0;
+
         case (ir[15:12])
             MOVIR: begin
                 $display("mov r%0d #%h", ir[11:8], ir[7:0]);
-                reg_wr_addr    <= ir[11:8];
+                reg_wr_addr    <= ir[10:8];
                 inst_immediate <= ir[7:0];
                 reg_input_sel  <= 1;
                 reg_wr_en      <= 1;
@@ -176,7 +180,16 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 $display("add reg #imm");
             end
             SUBRR: begin
-                $display("sub reg reg reg");
+                $display("sub r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
+                reg_rd0_addr <= ir[6:4];
+                reg_rd1_addr <= ir[2:0];
+                reg_wr_addr  <= ir[10:8];
+                subtract <= 1;
+                reg_input_sel  <= 0;
+                alu_inputA_sel <= 0;
+                reg_wr_en      <= 1;
+                reg_rd0_en     <= 1;
+                reg_rd1_en     <= 1;
             end
              SUBI: begin
                 $display("sub reg #imm");
