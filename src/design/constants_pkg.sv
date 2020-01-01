@@ -10,6 +10,7 @@ package constants_pkg;
     parameter int MEMORY_ADDRESS_BITS = 8;
     parameter int MEMORY_DATA_BITS = 8;
     parameter int INSTRUCTION_POINTER_BITS = MEMORY_ADDRESS_BITS;
+    parameter int JUMP_OFFSET_BITS = 8;
 
 endpackage
 

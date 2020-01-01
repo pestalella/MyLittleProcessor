@@ -35,6 +35,10 @@ module tb_exec_unit ();
         dut.memory.memory[3] = 254;
         dut.memory.memory[4] = {MOVIR, 4'b0001};
         dut.memory.memory[5] = 127;
+        dut.memory.memory[6] = {JZI, 4'b0000};
+        dut.memory.memory[7] = 0;
+        dut.memory.memory[8] = {NOP, 4'b1010};
+        dut.memory.memory[9] = 8'b10101010;
 
         // reset the DUT
         reset = 1;

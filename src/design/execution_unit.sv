@@ -14,7 +14,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     input wire reset
 );
 
-    bit [constants_pkg::INSTRUCTION_POINTER_BITS-1:0] ip;
+    bit [constants_pkg::INSTRUCTION_POINTER_BITS-1:0] pc;
     bit [15:0] ir;
 
     logic [constants_pkg::MEMORY_ADDRESS_BITS-1:0] mem_address;
@@ -41,6 +41,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     bit [REGISTER_ADDRESS_BITS-1:0] reg_rd0_addr, reg_rd1_addr, reg_wr_addr;
     bit reg_rd0_en, reg_rd1_en, reg_wr_en;
     bit alu_inputA_sel, reg_input_sel;
+    bit alu_zero;
 
     alu #(.DATA_BITS(REGISTER_DATA_BITS)) 
         arith_unit(.a(alu_input_a), 
@@ -76,9 +77,22 @@ module exec_unit #(parameter DATA_BITS = 8) (
                               .in1(inst_immediate),
                               .out(register_file_input));
 
+    bit pc_offset_sel;
+    wire [JUMP_OFFSET_BITS-1:0] next_pc_input;
+    bit [JUMP_OFFSET_BITS-1:0] jump_dest;
+
+    reg_mux2to1 #(.DATA_BITS(JUMP_OFFSET_BITS)) 
+        pc_offset_mux(.sel(pc_offset_sel),
+                      .in0((state==READ_LOW_IR)? pc + 2 : pc),
+                      .in1(jump_dest),
+                      .out(next_pc_input));
+
     always @(posedge reset) begin
-        ip <= 0;
+        pc <= 0;
+        pc_offset_sel <= 0;
+        jump_dest <= 0;
         ir <= 0;
+        alu_zero <= 0;
         mem_address <= 0;
         mem_data <= 'bzz;
         mem_read_en <= 0;
@@ -90,7 +104,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     always @(posedge clk) begin
         if (state != IDLE)
-            ip <= ip + 1;
+            pc <= next_pc_input;
     end
 
     always @(posedge clk) begin
@@ -100,11 +114,13 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 if (prev_state == READ_LOW_IR) begin
                     ir[7:0] <= memory.data;
                     instruction_ready <= 1;
+                    // Return to regular increase of the instruction pointer
+                    pc_offset_sel <= 0;
                 end else begin 
                     instruction_ready <= 0;
                 end
                 // Prepare read transaction
-                mem_address <= ip;
+                mem_address <= pc;
                 mem_read_en <= 1;
                 prev_state <= READ_HIGH_IR;
                 state <= READ_LOW_IR;
@@ -114,7 +130,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 // Now read the data from the completed read transaction
                 ir[15:8] <= memory.data;
                 // And prepare next transaction
-                mem_address <= ip;
+                mem_address <= pc + 1;
                 mem_read_en <= 1;
                 prev_state <= READ_LOW_IR;
                 state <= READ_HIGH_IR;
@@ -130,6 +146,10 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     always @(posedge instruction_ready) begin
         $display("Instruction ready: ir=%h%h opcode=%04b", ir[15:8], ir[7:0], ir[15:12]);
+        
+        // By default, pc = pc + 2
+        pc_offset_sel <= 0;
+
         case (ir[15:12])
             MOVIR: begin
                 $display("mov r%0d #%h", ir[11:8], ir[7:0]);
@@ -140,16 +160,41 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 reg_rd0_en     <= 0;
                 reg_rd1_en     <= 0;
             end
-            MOVRR: $display("mov reg reg");
-            MOVMR: $display("mov reg @address");
-            MOVRM: $display("mov @address reg");
-            ADDRR: $display("add reg reg reg");
-             ADDI: $display("add reg #imm");
-            SUBRR: $display("sub reg reg reg");
-             SUBI: $display("sub reg #imm");
-              JZI: $display("jz #offset");
-              JZR: $display("jz reg");
-              NOP: $display("nop");
+            MOVRR: begin
+                $display("mov reg reg");
+            end
+            MOVMR: begin
+                $display("mov reg @address");
+            end
+            MOVRM: begin
+                $display("mov @address reg");
+            end
+            ADDRR: begin
+                $display("add reg reg reg");
+            end
+             ADDI: begin
+                $display("add reg #imm");
+            end
+            SUBRR: begin
+                $display("sub reg reg reg");
+            end
+             SUBI: begin
+                $display("sub reg #imm");
+            end
+              JZI: begin
+                $display("jz #%0d", ir[7:0]);
+                // if (alu_zero) end
+                    pc_offset_sel <= 1;
+                    jump_dest <= ir[7:0];
+                // end
+            end
+              JZR: begin 
+                $display("jz reg");
+                pc_offset_sel <= 0;
+            end
+              NOP: begin
+                $display("nop");
+            end
           default: $display("Invalid opcode %b", ir[15:12]);
         endcase
     end
