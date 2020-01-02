@@ -13,9 +13,9 @@ module ram #( parameter ADDR_BITS = 8, DATA_BITS = 8 )
     always @(posedge write_en)
             memory[address] = data;
 
-    always @(write_en or out_en)
-        if (write_en && out_en)
-            $error("RAM: out_en and write_en both active");
+//    always @(write_en or out_en)
+//        if (write_en && out_en)
+//            $error("RAM: out_en and write_en both active");
 
 endmodule
 `endif

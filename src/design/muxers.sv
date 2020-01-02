@@ -2,9 +2,9 @@
 `define MUXERS_SV
 
 module reg_mux2to1 #(parameter DATA_BITS = 8) (   
-    input bit sel,
-    input logic [DATA_BITS-1:0] in0,
-    input logic [DATA_BITS-1:0] in1,
+    input sel,
+    input wire [DATA_BITS-1:0] in0,
+    input wire [DATA_BITS-1:0] in1,
     output logic [DATA_BITS-1:0] out
     );
     always_comb begin
@@ -15,16 +15,34 @@ module reg_mux2to1 #(parameter DATA_BITS = 8) (
     end
 endmodule
 
+module reg_mux4to1 #(parameter DATA_BITS = 8) (   
+    input [1:0] sel,
+    input wire [DATA_BITS-1:0] in0,
+    input wire [DATA_BITS-1:0] in1,
+    input wire [DATA_BITS-1:0] in2,
+    input wire [DATA_BITS-1:0] in3,
+    output logic [DATA_BITS-1:0] out
+    );
+    always_comb begin
+        case (sel)
+            'b00: out <= in0;
+            'b01: out <= in1;
+            'b10: out <= in2;
+            'b11: out <= in3;
+        endcase
+    end
+endmodule
+
 module reg_mux8to1 #(parameter DATA_BITS = 8) (   
-    input bit [2:0] sel,
-    input logic [DATA_BITS-1:0] in0,
-    input logic [DATA_BITS-1:0] in1,
-    input logic [DATA_BITS-1:0] in2,
-    input logic [DATA_BITS-1:0] in3,
-    input logic [DATA_BITS-1:0] in4,
-    input logic [DATA_BITS-1:0] in5,
-    input logic [DATA_BITS-1:0] in6,
-    input logic [DATA_BITS-1:0] in7,
+    input [2:0] sel,
+    input wire [DATA_BITS-1:0] in0,
+    input wire [DATA_BITS-1:0] in1,
+    input wire [DATA_BITS-1:0] in2,
+    input wire [DATA_BITS-1:0] in3,
+    input wire [DATA_BITS-1:0] in4,
+    input wire [DATA_BITS-1:0] in5,
+    input wire [DATA_BITS-1:0] in6,
+    input wire [DATA_BITS-1:0] in7,
     output logic [DATA_BITS-1:0] out
     );
     always_comb begin
