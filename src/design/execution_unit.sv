@@ -17,21 +17,21 @@ module exec_unit #(parameter DATA_BITS = 8) (
     bit [constants_pkg::INSTRUCTION_POINTER_BITS-1:0] pc;
     bit [15:0] ir;
 
-    logic [constants_pkg::MEMORY_ADDRESS_BITS-1:0] mem_address;
-    logic [constants_pkg::MEMORY_DATA_BITS-1:0] mem_data;
-    logic [constants_pkg::MEMORY_DATA_BITS-1:0] data_read;
+    logic [MEMORY_ADDRESS_BITS-1:0] mem_address;
+    wire  [MEMORY_DATA_BITS-1:0] mem_data;
+    bit   [MEMORY_DATA_BITS-1:0] mem_wr_data;
+    logic [MEMORY_DATA_BITS-1:0] data_read;
     logic mem_read_en, mem_write_en;
-    bit instruction_ready;
-    enum bit [2:0] {IDLE, FETCH_MSB_IR, FETCH_LSB_IR, DECODE, LOAD_STORE} state;
+    bit instruction_ready, mem_write_in_progress;
+    enum bit [2:0] {IDLE, FETCH_MSB_IR, FETCH_LSB_IR, DECODE, LOAD_STAGE, STORE_START, STORE_END} state;
 
-
-    ram #(.ADDR_BITS(constants_pkg::MEMORY_ADDRESS_BITS), 
-          .DATA_BITS(constants_pkg::MEMORY_DATA_BITS))
+    ram #(.ADDR_BITS(MEMORY_ADDRESS_BITS), 
+          .DATA_BITS(MEMORY_DATA_BITS))
         memory(.address(mem_address),
                .out_en(mem_read_en),
                .write_en(mem_write_en));
-    assign memory.data = mem_data;
-
+    assign memory.data = mem_write_in_progress ? mem_wr_data : 'bzz; // To drive the inout net
+    assign mem_data = memory.data; // To read from inout net
 
     logic subtract;
     logic carry;
@@ -41,7 +41,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     bit [REGISTER_ADDRESS_BITS-1:0] reg_rd0_addr, reg_rd1_addr, reg_wr_addr;
     bit reg_rd0_en, reg_rd1_en, reg_wr_en;
     bit alu_inputA_sel;
-    bit alu_zero;
+//    bit alu_zero;
 
     enum bit[1:0] {ALU_OUTPUT, INST_IMMEDIATE, MEM_LOAD, UNDEFINED} reg_input_sel;
 
@@ -78,7 +78,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                               .in0(alu_output),
                               .in1(inst_immediate),
                               .in2(load_mem),
-//                              .in3(),
+                              .in3('hzz),
                               .out(register_file_input));
 
     bit pc_offset_sel;
@@ -91,18 +91,19 @@ module exec_unit #(parameter DATA_BITS = 8) (
                       .in1(jump_dest),
                       .out(next_pc_input));
 
+    // Mostly to show in waves what the current instruction is
+    OpCode current_inst;
+
     always @(posedge reset) begin
         pc                <= 0;
         pc_offset_sel     <= 0;
-//        jump_dest         <= 0;
-//        ir                <= 0;
-        alu_zero          <= 0;
         mem_address       <= 0;
-//        mem_data          <= 'bzz;
         mem_read_en       <= 0;
         mem_write_en      <= 0;
         state             <= IDLE;
         instruction_ready <= 0;
+        mem_write_in_progress <= 0;
+        current_inst <= NOP;
     end;
 
     always @(posedge clk) begin
@@ -111,39 +112,62 @@ module exec_unit #(parameter DATA_BITS = 8) (
     end
 
     always @(posedge clk) begin
-        mem_data <= 'bzz;
         instruction_ready <= 0;
+
+        $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h", 
+            state.name, 
+            memory.memory[0:3], memory.memory[4:7], 
+            memory.memory[8:11], memory.memory[12:15],
+            memory.memory[16:19],
+            registers.r0.bits, registers.r1.bits, registers.r2.bits);
 
         case (state)
             FETCH_MSB_IR: begin
                 // Prepare read transaction
-                mem_address <= pc;
-                mem_read_en <= 1;
+                mem_address  <= pc;
+                mem_read_en  <= 1;
+                mem_write_en <= 0;
+                reg_wr_en    <= 0;
                 state <= FETCH_LSB_IR;
             end
             FETCH_LSB_IR: begin
                 instruction_ready <= 0;
                 // Now read the data from the completed read transaction
-                ir[15:8] <= memory.data;
+                ir[15:8]    <= memory.data;
                 // And prepare next transaction
                 mem_address <= pc + 1;
                 mem_read_en <= 1;
                 state <= DECODE;
             end
             DECODE: begin
-                ir[7:0] <= memory.data;
+                ir[7:0]           <= memory.data;
+                current_inst      <= OpCode'(ir[15:12]);
+                mem_write_en      <= 0;
                 instruction_ready <= 1;
-                if (ir[15:12] == LOAD || ir[15:12] == STORE)
-                    state <= LOAD_STORE;
-                else
+                if (ir[15:12] == LOAD)
+                    state <= LOAD_STAGE;
+                else if (ir[15:12] == STORE)
+                    state <= STORE_START;
+                else begin
                     state <= FETCH_MSB_IR;
+                end
             end
-            LOAD_STORE: begin
+            LOAD_STAGE: begin
                 load_mem     <= memory.data;
                 mem_write_en <= 0;
                 mem_read_en  <= 0;
-                // We should now be able to proceed with the next instruction
-                state <= FETCH_MSB_IR;
+                state        <= FETCH_MSB_IR;
+            end
+            STORE_START: begin
+                mem_wr_data           <= regfile_rd0_data;
+                mem_write_in_progress <= 1;
+                mem_read_en           <= 0;
+                state                 <= STORE_END;
+            end
+            STORE_END: begin
+                mem_write_en          <= 1;
+                mem_write_in_progress <= 0;
+                state                 <= FETCH_MSB_IR;
             end
             IDLE: begin
                 state <= FETCH_MSB_IR;
@@ -152,7 +176,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     end
 
     always @(posedge instruction_ready) begin
-        $display("Instruction ready: ir=%h%h opcode=%04b", ir[15:8], ir[7:0], ir[15:12]);
+//        $display("Instruction ready: ir=%h%h opcode=%04b", ir[15:8], ir[7:0], ir[15:12]);
         
         // By default, pc = pc + 2
         pc_offset_sel <= 0;
@@ -184,7 +208,10 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 reg_input_sel  <= MEM_LOAD;
             end
             STORE: begin
-                $display("store @address reg");
+                $display("store @%h r%0d", ir[7:0], ir[10:8]);
+                mem_address <= ir[7:0];
+                reg_rd0_addr <= ir[10:8];
+                reg_rd0_en     <= 1;
             end
             ADDRR: begin
                 $display("add r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
