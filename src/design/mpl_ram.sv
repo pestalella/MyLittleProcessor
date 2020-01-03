@@ -2,7 +2,8 @@
 `define MLP_RAM_SV
 
 module ram #( parameter ADDR_BITS = 8, DATA_BITS = 8 )
-    (input wire [ADDR_BITS-1:0] address,
+    (input clk,
+     input wire [ADDR_BITS-1:0] address,
      inout logic [DATA_BITS-1:0] data,
      input wire out_en,
      input wire write_en);
@@ -10,8 +11,10 @@ module ram #( parameter ADDR_BITS = 8, DATA_BITS = 8 )
     bit [DATA_BITS-1:0] memory [0: (1<<ADDR_BITS) - 1];
 
     assign data = out_en ? memory[address] : {DATA_BITS{1'bz}};
-    always @(posedge write_en)
-            memory[address] = data;
+
+    always @(posedge clk)
+        if (write_en)
+            memory[address] <= data;
 
 //    always @(write_en or out_en)
 //        if (write_en && out_en)

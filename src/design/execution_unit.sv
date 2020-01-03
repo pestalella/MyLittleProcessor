@@ -22,16 +22,21 @@ module exec_unit #(parameter DATA_BITS = 8) (
     bit   [MEMORY_DATA_BITS-1:0] mem_wr_data;
     logic [MEMORY_DATA_BITS-1:0] data_read;
     logic mem_read_en, mem_write_en;
-    bit instruction_ready, mem_write_in_progress;
-    enum bit [2:0] {IDLE, FETCH_MSB_IR, FETCH_LSB_IR, DECODE, LOAD_STAGE, STORE_START, STORE_END} state;
+    bit mem_write_in_progress;
+    enum bit [2:0] {IDLE, FETCH_MSB_IR, FETCH_LSB_IR, DECODE, EXECUTE, LOAD_STAGE, STORE_START, STORE_END} state;
 
     ram #(.ADDR_BITS(MEMORY_ADDRESS_BITS), 
           .DATA_BITS(MEMORY_DATA_BITS))
-        memory(.address(mem_address),
+        memory(.clk(clk),
+               .address(mem_address),
                .out_en(mem_read_en),
-               .write_en(mem_write_en));
-    assign memory.data = mem_write_in_progress ? mem_wr_data : 'bzz; // To drive the inout net
-    assign mem_data = memory.data; // To read from inout net
+               .write_en(mem_write_en),
+               .data(mem_data_wire));
+ 
+   wire  [MEMORY_DATA_BITS-1:0] mem_data_wire;
+ 
+    assign mem_data_wire = mem_write_in_progress ? mem_wr_data : {DATA_BITS{1'bz}}; // To drive the inout net
+    assign mem_data = mem_data_wire; // To read from inout net
 
     logic subtract;
     logic carry;
@@ -94,97 +99,19 @@ module exec_unit #(parameter DATA_BITS = 8) (
     // Mostly to show in waves what the current instruction is
     OpCode current_inst;
 
-    always @(posedge reset) begin
-        pc                <= 0;
-        pc_offset_sel     <= 0;
-        mem_address       <= 0;
-        mem_read_en       <= 0;
-        mem_write_en      <= 0;
-        state             <= IDLE;
-        instruction_ready <= 0;
-        mem_write_in_progress <= 0;
-        current_inst <= NOP;
-    end;
-
     always @(posedge clk) begin
         if (state != IDLE)
             pc <= next_pc_input;
     end
 
-    always @(posedge clk) begin
-        instruction_ready <= 0;
-
-        $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h", 
-            state.name, 
-            memory.memory[0:3], memory.memory[4:7], 
-            memory.memory[8:11], memory.memory[12:15],
-            memory.memory[16:19],
-            registers.r0.bits, registers.r1.bits, registers.r2.bits);
-
-        case (state)
-            FETCH_MSB_IR: begin
-                // Prepare read transaction
-                mem_address  <= pc;
-                mem_read_en  <= 1;
-                mem_write_en <= 0;
-                reg_wr_en    <= 0;
-                state <= FETCH_LSB_IR;
-            end
-            FETCH_LSB_IR: begin
-                instruction_ready <= 0;
-                // Now read the data from the completed read transaction
-                ir[15:8]    <= memory.data;
-                // And prepare next transaction
-                mem_address <= pc + 1;
-                mem_read_en <= 1;
-                state <= DECODE;
-            end
-            DECODE: begin
-                ir[7:0]           <= memory.data;
-                current_inst      <= OpCode'(ir[15:12]);
-                mem_write_en      <= 0;
-                instruction_ready <= 1;
-                if (ir[15:12] == LOAD)
-                    state <= LOAD_STAGE;
-                else if (ir[15:12] == STORE)
-                    state <= STORE_START;
-                else begin
-                    state <= FETCH_MSB_IR;
-                end
-            end
-            LOAD_STAGE: begin
-                load_mem     <= memory.data;
-                mem_write_en <= 0;
-                mem_read_en  <= 0;
-                state        <= FETCH_MSB_IR;
-            end
-            STORE_START: begin
-                mem_wr_data           <= regfile_rd0_data;
-                mem_write_in_progress <= 1;
-                mem_read_en           <= 0;
-                state                 <= STORE_END;
-            end
-            STORE_END: begin
-                mem_write_en          <= 1;
-                mem_write_in_progress <= 0;
-                state                 <= FETCH_MSB_IR;
-            end
-            IDLE: begin
-                state <= FETCH_MSB_IR;
-            end
-        endcase
-    end
-
-    always @(posedge instruction_ready) begin
-//        $display("Instruction ready: ir=%h%h opcode=%04b", ir[15:8], ir[7:0], ir[15:12]);
-        
+    function execute_instruction;
         // By default, pc = pc + 2
         pc_offset_sel <= 0;
 
         reg_wr_en      <= 0;
         reg_rd0_en     <= 0;
         reg_rd1_en     <= 0;
-        mem_write_en   <= 0;
+//        mem_write_en   <= 0;
         mem_read_en    <= 0;
 
         case (ir[15:12])
@@ -259,7 +186,95 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
           default: $display("Invalid opcode %b", ir[15:12]);
         endcase
-    end
 
+    endfunction
+
+    always @(posedge clk, posedge reset) begin
+        if (reset) begin
+            pc                <= 0;
+            pc_offset_sel     <= 0;
+            mem_address       <= 0;
+            mem_read_en       <= 0;
+            mem_write_en      <= 0;
+            mem_write_in_progress <= 0;
+            reg_rd0_addr      <= 0;
+            reg_rd1_addr      <= 0;
+            reg_wr_addr       <= 0;
+            subtract          <= 0;
+            reg_input_sel     <= ALU_OUTPUT;
+            alu_inputA_sel    <= 0;
+            reg_wr_en         <= 0;
+            reg_rd0_en        <= 0;
+            reg_rd1_en        <= 0;
+            reg_wr_en         <= 0;
+            state             <= IDLE;
+            current_inst      <= NOP;
+        end else begin    
+    //        $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h", 
+    //            state.name, 
+    //            memory.memory[0:3], memory.memory[4:7], 
+    //            memory.memory[8:11], memory.memory[12:15],
+    //            memory.memory[16:19],
+    //            registers.r0.bits, registers.r1.bits, registers.r2.bits);
+    
+            case (state)
+                FETCH_MSB_IR: begin
+                    // Prepare read transaction
+                    mem_address  <= pc;
+                    mem_read_en  <= 1;
+                    mem_write_en <= 0;
+                    reg_wr_en    <= 0;
+                    state <= FETCH_LSB_IR;
+                end
+                FETCH_LSB_IR: begin
+                    // Now read the data from the completed read transaction
+                    ir[15:8]    <= memory.data;
+                    // And prepare next transaction
+                    mem_address <= pc + 1;
+                    mem_read_en <= 1;
+                    state <= DECODE;
+                end
+                DECODE: begin
+                    ir[7:0]           <= memory.data;
+                    current_inst      <= OpCode'(ir[15:12]);
+                    mem_write_en      <= 0;
+                    if (ir[15:12] == LOAD)
+                        state <= LOAD_STAGE;
+                    else if (ir[15:12] == STORE)
+                        state <= STORE_START;
+                    else begin
+                        state <= EXECUTE;
+                    end
+                end
+                EXECUTE: begin
+                    execute_instruction();
+                    state <= FETCH_MSB_IR;
+                end
+                LOAD_STAGE: begin
+                    load_mem     <= memory.data;
+                    mem_write_en <= 0;
+                    mem_read_en  <= 0;
+                    state        <= FETCH_MSB_IR;
+                end
+                STORE_START: begin
+                    mem_wr_data           <= regfile_rd0_data;
+                    mem_write_in_progress <= 1;
+                    mem_read_en           <= 0;
+                    state                 <= STORE_END;
+                end
+                STORE_END: begin
+                    mem_write_en          <= 1;
+                    mem_write_in_progress <= 0;
+                    state                 <= FETCH_MSB_IR;
+                end
+                IDLE: begin
+                    state <= FETCH_MSB_IR;
+                end
+                default: begin
+                    state <= IDLE;
+                end
+            endcase
+        end
+    end
 endmodule
 `endif
