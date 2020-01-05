@@ -22,6 +22,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     bit   [MEMORY_DATA_BITS-1:0] mem_wr_data;
     logic [MEMORY_DATA_BITS-1:0] data_read;
     logic mem_read_en, mem_write_en;
+    wire  [MEMORY_DATA_BITS-1:0] mem_data_wire;
     bit mem_write_in_progress;
     enum bit [2:0] {IDLE, FETCH_MSB_IR, FETCH_LSB_IR, DECODE, EXECUTE, LOAD_STAGE, STORE_START, STORE_END} state;
 
@@ -32,9 +33,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                .out_en(mem_read_en),
                .write_en(mem_write_en),
                .data(mem_data_wire));
- 
-   wire  [MEMORY_DATA_BITS-1:0] mem_data_wire;
- 
+  
     assign mem_data_wire = mem_write_in_progress ? mem_wr_data : {DATA_BITS{1'bz}}; // To drive the inout net
     assign mem_data = mem_data_wire; // To read from inout net
 
@@ -210,12 +209,12 @@ module exec_unit #(parameter DATA_BITS = 8) (
             state             <= IDLE;
             current_inst      <= NOP;
         end else begin    
-    //        $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h", 
-    //            state.name, 
-    //            memory.memory[0:3], memory.memory[4:7], 
-    //            memory.memory[8:11], memory.memory[12:15],
-    //            memory.memory[16:19],
-    //            registers.r0.bits, registers.r1.bits, registers.r2.bits);
+            $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h", 
+                state.name, 
+                memory.memory[0:3], memory.memory[4:7], 
+                memory.memory[8:11], memory.memory[12:15],
+                memory.memory[16:19],
+                registers.r0.bits, registers.r1.bits, registers.r2.bits);
     
             case (state)
                 FETCH_MSB_IR: begin
@@ -238,17 +237,16 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     ir[7:0]           <= memory.data;
                     current_inst      <= OpCode'(ir[15:12]);
                     mem_write_en      <= 0;
+                     state <= EXECUTE;
+                end
+                EXECUTE: begin
+                    execute_instruction();
                     if (ir[15:12] == LOAD)
                         state <= LOAD_STAGE;
                     else if (ir[15:12] == STORE)
                         state <= STORE_START;
-                    else begin
-                        state <= EXECUTE;
-                    end
-                end
-                EXECUTE: begin
-                    execute_instruction();
-                    state <= FETCH_MSB_IR;
+                    else
+                        state <= FETCH_MSB_IR;
                 end
                 LOAD_STAGE: begin
                     load_mem     <= memory.data;
