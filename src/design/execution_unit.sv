@@ -41,8 +41,8 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     logic subtract;
     logic carry;
-    wire [REGISTER_DATA_BITS-1:0] alu_input_a, alu_input_b, alu_output, 
-                                  register_file_input, regfile_rd0_data;
+    wire [REGISTER_DATA_BITS-1:0] alu_input_b, alu_output, 
+                                  register_file_input, regfile_rd0_data, regfile_rd1_data;
     bit [REGISTER_DATA_BITS-1:0] inst_immediate, load_mem;
     bit [REGISTER_ADDRESS_BITS-1:0] reg_rd0_addr, reg_rd1_addr, reg_wr_addr;
     bit reg_rd0_en, reg_rd1_en, reg_wr_en;
@@ -52,7 +52,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     enum bit[1:0] {ALU_OUTPUT, INST_IMMEDIATE, MEM_LOAD, UNDEFINED} reg_input_sel;
 
     alu #(.DATA_BITS(REGISTER_DATA_BITS)) 
-        arith_unit(.a(alu_input_a), 
+        arith_unit(.a(regfile_rd0_data), 
                    .b(alu_input_b), 
                    .cin(subtract), 
                    .result(alu_output), 
@@ -74,7 +74,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
                   .rd1_enable(reg_rd1_en),
                   .rd1_addr(reg_rd1_addr),
-                  .rd1_data(alu_input_b),
+                  .rd1_data(regfile_rd1_data),
 
                   .wr_enable(reg_wr_en),
                   .wr_addr(reg_wr_addr),
@@ -230,12 +230,12 @@ module exec_unit #(parameter DATA_BITS = 8) (
             state             <= IDLE;
             current_inst      <= NOP;
         end else begin    
-            $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h", 
-                state.name, 
-                memory.memory[0:3], memory.memory[4:7], 
-                memory.memory[8:11], memory.memory[12:15],
-                memory.memory[16:19],
-                registers.r0.bits, registers.r1.bits, registers.r2.bits);
+//            $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h", 
+//                state.name, 
+//                memory.memory[0:3], memory.memory[4:7], 
+//                memory.memory[8:11], memory.memory[12:15],
+//                memory.memory[16:19],
+//                registers.r0.bits, registers.r1.bits, registers.r2.bits);
     
             case (state)
                 FETCH_MSB_IR: begin
@@ -258,7 +258,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     ir[7:0]           <= memory.data;
                     current_inst      <= OpCode'(ir[15:12]);
                     mem_write_en      <= 0;
-                    state <= EXECUTE;
+                     state <= EXECUTE;
                 end
                 EXECUTE: begin
                     execute_instruction();
