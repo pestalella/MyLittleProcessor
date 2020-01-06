@@ -44,7 +44,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     bit [REGISTER_DATA_BITS-1:0] inst_immediate, load_mem;
     bit [REGISTER_ADDRESS_BITS-1:0] reg_rd0_addr, reg_rd1_addr, reg_wr_addr;
     bit reg_rd0_en, reg_rd1_en, reg_wr_en;
-    bit alu_inputA_sel;
+    enum bit {REGISTER_FILE, IMMEDIATE} alu_inputB_sel;
 //    bit alu_zero;
 
     enum bit[1:0] {ALU_OUTPUT, INST_IMMEDIATE, MEM_LOAD, UNDEFINED} reg_input_sel;
@@ -56,10 +56,10 @@ module exec_unit #(parameter DATA_BITS = 8) (
                    .result(alu_output), 
                    .cout(carry));
 
-    reg_mux2to1 alu_inputA_mux(.sel(alu_inputA_sel),
-                               .in0(regfile_rd0_data),
+    reg_mux2to1 alu_inputB_mux(.sel(alu_inputB_sel),
+                               .in0(regfile_rd1_data),
                                .in1(inst_immediate),
-                               .out(alu_input_a));
+                               .out(alu_input_b));
 
     register_file #(.ADDR_BITS(REGISTER_ADDRESS_BITS), 
                     .DATA_BITS(REGISTER_DATA_BITS))
@@ -126,7 +126,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
             LOAD: begin
                 $display("load r%0d @%h", ir[10:8], ir[7:0]);
-                // And prepare next transaction
+                // Prepare next transaction
                 mem_address <= ir[7:0];
                 mem_read_en <= 1;
                 reg_wr_addr <= ir[10:8];
@@ -135,36 +135,55 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
             STORE: begin
                 $display("store @%h r%0d", ir[7:0], ir[10:8]);
+                // Launch register read
                 mem_address <= ir[7:0];
                 reg_rd0_addr <= ir[10:8];
                 reg_rd0_en     <= 1;
             end
             ADDRR: begin
                 $display("add r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
+                // Enable input to the ALU from the register file
+                alu_inputB_sel <= REGISTER_FILE;
+                // Two registers reads
                 reg_rd0_addr <= ir[6:4];
                 reg_rd1_addr <= ir[2:0];
-                reg_wr_addr  <= ir[10:8];
-                subtract <= 0;
-                reg_input_sel  <= ALU_OUTPUT;
-                alu_inputA_sel <= 0;
-                reg_wr_en      <= 1;
                 reg_rd0_en     <= 1;
                 reg_rd1_en     <= 1;
+                // Enable writes to the register file from the ALU
+                reg_input_sel  <= ALU_OUTPUT;
+                reg_wr_addr  <= ir[10:8];
+                reg_wr_en      <= 1;
+                // Addition op, therefore subtract=0
+                subtract <= 0;
             end
              ADDI: begin
                 $display("add reg #imm");
+                inst_immediate <= ir[7:0];
+                alu_inputB_sel <= IMMEDIATE;
+                reg_rd0_addr   <= ir[10:8];
+                reg_rd0_en     <= 1;
+                // Enable writes to the register file from the ALU
+                reg_input_sel  <= ALU_OUTPUT;
+                reg_wr_addr    <= ir[10:8];
+                reg_wr_en      <= 1;
+                // Addition op, therefore subtract=0
+                subtract       <= 0;
             end
             SUBRR: begin
                 $display("sub r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
-                reg_rd0_addr <= ir[6:4];
-                reg_rd1_addr <= ir[2:0];
-                reg_wr_addr  <= ir[10:8];
+                // Enable input to the ALU from the register file
+                alu_inputB_sel <= REGISTER_FILE;
+                // Two registers reads
+                reg_rd0_addr  <= ir[6:4];
+                reg_rd1_addr  <= ir[2:0];
+                reg_rd0_en    <= 1;
+                reg_rd1_en    <= 1;
+                // Enable writes to the register file from the ALU
+                reg_input_sel <= ALU_OUTPUT;
+                reg_wr_addr   <= ir[10:8];
+                reg_wr_en     <= 1;
+                // Subtract op, therefore subtract=1
                 subtract <= 1;
-                reg_input_sel  <= ALU_OUTPUT;
-                alu_inputA_sel <= 0;
-                reg_wr_en      <= 1;
-                reg_rd0_en     <= 1;
-                reg_rd1_en     <= 1;
             end
              SUBI: begin
                 $display("sub reg #imm");
@@ -201,7 +220,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             reg_wr_addr       <= 0;
             subtract          <= 0;
             reg_input_sel     <= ALU_OUTPUT;
-            alu_inputA_sel    <= 0;
+            alu_inputB_sel    <= REGISTER_FILE;
             reg_wr_en         <= 0;
             reg_rd0_en        <= 0;
             reg_rd1_en        <= 0;
