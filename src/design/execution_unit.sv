@@ -3,8 +3,10 @@
 
 `timescale 1ns / 1ps
 
+`include "alu.sv"
 `include "constants_pkg.sv"
 `include "isa_definition.sv"
+`include "ram.sv"
 
 import constants_pkg::*;
 import isa_pkg::*;
@@ -256,7 +258,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     ir[7:0]           <= memory.data;
                     current_inst      <= OpCode'(ir[15:12]);
                     mem_write_en      <= 0;
-                     state <= EXECUTE;
+                    state <= EXECUTE;
                 end
                 EXECUTE: begin
                     execute_instruction();

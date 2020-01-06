@@ -1,4 +1,4 @@
-`include "mpl_ram.sv"
+`include "ram.sv"
 
 module tb_ram ();
 
