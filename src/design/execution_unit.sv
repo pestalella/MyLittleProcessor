@@ -20,7 +20,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
     bit [15:0] ir;
 
     logic [MEMORY_ADDRESS_BITS-1:0] mem_address;
-    wire  [MEMORY_DATA_BITS-1:0] mem_data;
     bit   [MEMORY_DATA_BITS-1:0] mem_wr_data;
     logic [MEMORY_DATA_BITS-1:0] data_read;
     logic mem_read_en, mem_write_en;
@@ -37,7 +36,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
                .data(mem_data_wire));
   
     assign mem_data_wire = mem_write_in_progress ? mem_wr_data : {DATA_BITS{1'bz}}; // To drive the inout net
-    assign mem_data = mem_data_wire; // To read from inout net
 
     logic subtract;
     logic carry;
@@ -248,14 +246,14 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 end
                 FETCH_LSB_IR: begin
                     // Now read the data from the completed read transaction
-                    ir[15:8]    <= memory.data;
+                    ir[15:8]    <= mem_data_wire;
                     // And prepare next transaction
                     mem_address <= pc + 1;
                     mem_read_en <= 1;
                     state <= DECODE;
                 end
                 DECODE: begin
-                    ir[7:0]           <= memory.data;
+                    ir[7:0]           <= mem_data_wire;
                     current_inst      <= OpCode'(ir[15:12]);
                     mem_write_en      <= 0;
                      state <= EXECUTE;
@@ -270,7 +268,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                         state <= FETCH_MSB_IR;
                 end
                 LOAD_STAGE: begin
-                    load_mem     <= memory.data;
+                    load_mem     <= mem_data_wire;
                     mem_write_en <= 0;
                     mem_read_en  <= 0;
                     state        <= FETCH_MSB_IR;
@@ -278,11 +276,12 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 STORE_START: begin
                     mem_wr_data           <= regfile_rd0_data;
                     mem_write_in_progress <= 1;
+                    mem_write_en          <= 1;
                     mem_read_en           <= 0;
                     state                 <= STORE_END;
                 end
                 STORE_END: begin
-                    mem_write_en          <= 1;
+                    mem_write_en          <= 0;
                     mem_write_in_progress <= 0;
                     state                 <= FETCH_MSB_IR;
                 end
