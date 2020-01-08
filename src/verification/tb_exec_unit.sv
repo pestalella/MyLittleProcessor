@@ -11,7 +11,8 @@ module tb_exec_unit ();
     string infile_path;
     integer bytes_read;
 
-    exec_unit #(.DATA_BITS(8)) dut(.clk(clk), .reset(reset));
+//    exec_unit #(.DATA_BITS(8)) dut(.clk(clk), .reset(reset));
+    cpu_top dut(.clk(clk), .reset(reset));
 
     always begin
         #5 clk = !clk;

@@ -1,0 +1,16 @@
+create_clock -period 10.000 -name clk -waveform {0.000 5.000} [get_ports clk]
+set_input_delay -clock [get_clocks clk] -clock_fall -min -add_delay 2.000 [get_ports reset]
+set_input_delay -clock [get_clocks clk] -clock_fall -max -add_delay 4.000 [get_ports reset]
+set_input_delay -clock [get_clocks clk] -min -add_delay 2.000 [get_ports reset]
+set_input_delay -clock [get_clocks clk] -max -add_delay 4.000 [get_ports reset]
+
+set_property BITSTREAM.CONFIG.CONFIGRATE 33 [current_design]
+
+set_property CONFIG_MODE SPIx1 [current_design]
+set_property CONFIG_VOLTAGE 3.3 [current_design]
+set_property CFGBVS VCCO [current_design]
+set_property PULLDOWN true [get_ports reset]
+set_property PACKAGE_PIN D9 [get_ports reset]
+set_property IOSTANDARD LVTTL [get_ports reset]
+set_property IOSTANDARD LVTTL [get_ports clk]
+set_property PACKAGE_PIN E3 [get_ports clk]

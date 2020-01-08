@@ -6,14 +6,18 @@
 `include "alu.sv"
 `include "constants_pkg.sv"
 `include "isa_definition.sv"
-`include "ram.sv"
 
 import constants_pkg::*;
 import isa_pkg::*;
 
 module exec_unit #(parameter DATA_BITS = 8) (
     input wire clk,
-    input wire reset
+    input wire reset,
+
+    output wire [MEMORY_ADDRESS_BITS-1:0] ram_address,
+    inout  wire [MEMORY_DATA_BITS-1:0] ram_data,
+    output wire ram_read_en,
+    output wire ram_write_en
 );
 
     bit [constants_pkg::INSTRUCTION_POINTER_BITS-1:0] pc;
@@ -23,38 +27,36 @@ module exec_unit #(parameter DATA_BITS = 8) (
     bit   [MEMORY_DATA_BITS-1:0] mem_wr_data;
     logic [MEMORY_DATA_BITS-1:0] data_read;
     logic mem_read_en, mem_write_en;
-    wire  [MEMORY_DATA_BITS-1:0] mem_data_wire;
     bit mem_write_in_progress;
     enum bit [2:0] {IDLE, FETCH_MSB_IR, FETCH_LSB_IR, DECODE, EXECUTE, LOAD_STAGE, STORE_START, STORE_END} state;
 
-    ram #(.ADDR_BITS(MEMORY_ADDRESS_BITS), 
-          .DATA_BITS(MEMORY_DATA_BITS))
-        memory(.clk(clk),
-               .address(mem_address),
-               .out_en(mem_read_en),
-               .write_en(mem_write_en),
-               .data(mem_data_wire));
-  
-    assign mem_data_wire = mem_write_in_progress ? mem_wr_data : {DATA_BITS{1'bz}}; // To drive the inout net
+    assign ram_write_en = mem_write_en;
+    assign ram_read_en = mem_read_en;
+    assign ram_address = mem_address;
+    assign ram_data = mem_write_in_progress ? mem_wr_data : {DATA_BITS{1'bz}}; // To drive the inout net
 
     logic subtract;
-    logic carry;
+    logic alu_carry;
+    logic alu_zero;
     wire [REGISTER_DATA_BITS-1:0] alu_input_b, alu_output, 
                                   register_file_input, regfile_rd0_data, regfile_rd1_data;
     bit [REGISTER_DATA_BITS-1:0] inst_immediate, load_mem;
     bit [REGISTER_ADDRESS_BITS-1:0] reg_rd0_addr, reg_rd1_addr, reg_wr_addr;
     bit reg_rd0_en, reg_rd1_en, reg_wr_en;
     enum bit {REGISTER_FILE, IMMEDIATE} alu_inputB_sel;
-//    bit alu_zero;
 
-    enum bit[1:0] {ALU_OUTPUT, INST_IMMEDIATE, MEM_LOAD, UNDEFINED} reg_input_sel;
+    enum bit[1:0] {ALU_OUTPUT = 0, 
+                   INST_IMMEDIATE = 1, 
+                   MEM_LOAD = 2, 
+                   REG_FILE_RD0 = 3} reg_input_sel;
 
     alu #(.DATA_BITS(REGISTER_DATA_BITS)) 
         arith_unit(.a(regfile_rd0_data), 
                    .b(alu_input_b), 
                    .cin(subtract), 
                    .result(alu_output), 
-                   .cout(carry));
+                   .cout(alu_carry),
+                   .zero(alu_zero));
 
     reg_mux2to1 alu_inputB_mux(.sel(alu_inputB_sel),
                                .in0(regfile_rd1_data),
@@ -82,7 +84,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                               .in0(alu_output),
                               .in1(inst_immediate),
                               .in2(load_mem),
-                              .in3('hzz),
+                              .in3(regfile_rd0_data),
                               .out(register_file_input));
 
     bit pc_offset_sel;
@@ -107,10 +109,10 @@ module exec_unit #(parameter DATA_BITS = 8) (
         // By default, pc = pc + 2
         pc_offset_sel <= 0;
 
+        reg_input_sel  <= ALU_OUTPUT;
         reg_wr_en      <= 0;
         reg_rd0_en     <= 0;
         reg_rd1_en     <= 0;
-//        mem_write_en   <= 0;
         mem_read_en    <= 0;
 
         case (ir[15:12])
@@ -122,7 +124,14 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 reg_wr_en      <= 1;
             end
             MOVRR: begin
-                $display("mov reg reg");
+                $display("mov r%0d r%0d", ir[10:8], ir[6:4]);
+                // One register read
+                reg_wr_addr <= ir[10:8];
+                reg_rd0_en     <= 1;
+                // Write the register to a register
+                reg_rd0_addr <= ir[6:4];
+                reg_wr_en      <= 1;
+                reg_input_sel  <= REG_FILE_RD0;
             end
             LOAD: begin
                 $display("load r%0d @%h", ir[10:8], ir[7:0]);
@@ -157,7 +166,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 subtract <= 0;
             end
              ADDI: begin
-                $display("add reg #imm");
+                $display("add r%0d #%h", ir[10:8], ir[7:0]);
                 inst_immediate <= ir[7:0];
                 alu_inputB_sel <= IMMEDIATE;
                 reg_rd0_addr   <= ir[10:8];
@@ -186,14 +195,24 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 subtract <= 1;
             end
              SUBI: begin
-                $display("sub reg #imm");
+                $display("sub r%0d #%h", ir[10:8], ir[7:0]);
+                inst_immediate <= ir[7:0];
+                alu_inputB_sel <= IMMEDIATE;
+                reg_rd0_addr   <= ir[10:8];
+                reg_rd0_en     <= 1;
+                // Enable writes to the register file from the ALU
+                reg_input_sel  <= ALU_OUTPUT;
+                reg_wr_addr    <= ir[10:8];
+                reg_wr_en      <= 1;
+                // Subtraction op, therefore subtract=1
+                subtract       <= 1;
             end
               JZI: begin
                 $display("jz #%0d", ir[7:0]);
-                // if (alu_zero) end
+                if (alu_zero) begin
                     pc_offset_sel <= 1;
                     jump_dest <= ir[7:0];
-                // end
+                end
             end
               JZR: begin 
                 $display("jz reg");
@@ -227,14 +246,15 @@ module exec_unit #(parameter DATA_BITS = 8) (
             reg_wr_en         <= 0;
             state             <= IDLE;
             current_inst      <= NOP;
-        end else begin    
-//            $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h", 
-//                state.name, 
-//                memory.memory[0:3], memory.memory[4:7], 
-//                memory.memory[8:11], memory.memory[12:15],
-//                memory.memory[16:19],
-//                registers.r0.bits, registers.r1.bits, registers.r2.bits);
-    
+        end else begin
+`ifdef VIVADO_SIMULATION
+           $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h", 
+               state.name, 
+               memory.memory[0:3], memory.memory[4:7], 
+               memory.memory[8:11], memory.memory[12:15],
+               memory.memory[16:19],
+               registers.r0.bits, registers.r1.bits, registers.r2.bits);
+`endif
             case (state)
                 FETCH_MSB_IR: begin
                     // Prepare read transaction
@@ -246,17 +266,17 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 end
                 FETCH_LSB_IR: begin
                     // Now read the data from the completed read transaction
-                    ir[15:8]    <= mem_data_wire;
+                    ir[15:8]    <= ram_data;
                     // And prepare next transaction
                     mem_address <= pc + 1;
                     mem_read_en <= 1;
                     state <= DECODE;
                 end
                 DECODE: begin
-                    ir[7:0]           <= mem_data_wire;
+                    ir[7:0]           <= ram_data;
                     current_inst      <= OpCode'(ir[15:12]);
                     mem_write_en      <= 0;
-                     state <= EXECUTE;
+                    state <= EXECUTE;
                 end
                 EXECUTE: begin
                     execute_instruction();
@@ -268,7 +288,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                         state <= FETCH_MSB_IR;
                 end
                 LOAD_STAGE: begin
-                    load_mem     <= mem_data_wire;
+                    load_mem     <= ram_data;
                     mem_write_en <= 0;
                     mem_read_en  <= 0;
                     state        <= FETCH_MSB_IR;
