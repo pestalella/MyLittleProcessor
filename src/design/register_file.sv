@@ -83,7 +83,7 @@ module register_file #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
                     .out5(r5_data_in),
                     .out6(r6_data_in),
                     .out7(r7_data_in));
-        
+    
     register #(.DATA_BITS(DATA_BITS)) r0(
         .clk(clk),
         .reset(reset),

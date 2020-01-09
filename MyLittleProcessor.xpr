@@ -30,7 +30,7 @@
     <Option Name="IPUserFilesDir" Val="$PIPUSERFILESDIR"/>
     <Option Name="IPStaticSourceDir" Val="$PIPUSERFILESDIR/ipstatic"/>
     <Option Name="EnableBDX" Val="FALSE"/>
-    <Option Name="WTXSimLaunchSim" Val="297"/>
+    <Option Name="WTXSimLaunchSim" Val="305"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
@@ -195,6 +195,13 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/src/verification/execution_logger.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
         <Option Name="TopModule" Val="tb_exec_unit"/>
@@ -208,7 +215,7 @@
         <Option Name="XSimWcfgFile" Val="$PPRDIR/tb_exec_unit_behav1.wcfg"/>
         <Option Name="xsim.compile.xvlog.more_options" Val="-d VIDADO_SIMULATION"/>
         <Option Name="xsim.simulate.runtime" Val="500ns"/>
-        <Option Name="xsim.simulate.xsim.more_options" Val="-testplusarg &quot;memory_file=jz.bin&quot;"/>
+        <Option Name="xsim.simulate.xsim.more_options" Val="-testplusarg &quot;memory_file=basic.bin&quot;"/>
         <Option Name="NLNetlistMode" Val="funcsim"/>
       </Config>
     </FileSet>

@@ -87,14 +87,16 @@ module exec_unit #(parameter DATA_BITS = 8) (
                               .in3(regfile_rd0_data),
                               .out(register_file_input));
 
-    bit pc_offset_sel;
+    enum bit [1:0] {RESET = 0, NEXT_INSTRUCTION = 1, JUMP_TARGET = 2, UNDEFINED = 3} pc_offset_sel;
     wire [JUMP_OFFSET_BITS-1:0] next_pc_input;
     bit [JUMP_OFFSET_BITS-1:0] jump_dest;
 
-    reg_mux2to1 #(.DATA_BITS(JUMP_OFFSET_BITS)) 
+    reg_mux4to1 #(.DATA_BITS(JUMP_OFFSET_BITS)) 
         pc_offset_mux(.sel(pc_offset_sel),
-                      .in0((state==FETCH_LSB_IR)? 8'(pc + 2) : pc),
-                      .in1(jump_dest),
+                      .in0('0),
+                      .in1((state==FETCH_LSB_IR)? 8'(pc + 2) : pc),
+                      .in2(jump_dest),
+                      .in3('z),
                       .out(next_pc_input));
 
     // Mostly to show in waves what the current instruction is
@@ -107,7 +109,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     function execute_instruction;
         // By default, pc = pc + 2
-        pc_offset_sel <= 0;
+        pc_offset_sel <= NEXT_INSTRUCTION;
 
         reg_input_sel  <= ALU_OUTPUT;
         reg_wr_en      <= 0;
@@ -122,16 +124,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 inst_immediate <= ir[7:0];
                 reg_input_sel  <= INST_IMMEDIATE;
                 reg_wr_en      <= 1;
-            end
-            MOVRR: begin
-                $display("mov r%0d r%0d", ir[10:8], ir[6:4]);
-                // One register read
-                reg_wr_addr <= ir[10:8];
-                reg_rd0_en     <= 1;
-                // Write the register to a register
-                reg_rd0_addr <= ir[6:4];
-                reg_wr_en      <= 1;
-                reg_input_sel  <= REG_FILE_RD0;
             end
             LOAD: begin
                 $display("load r%0d @%h", ir[10:8], ir[7:0]);
@@ -207,16 +199,16 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 // Subtraction op, therefore subtract=1
                 subtract       <= 1;
             end
-              JZI: begin
-                $display("jz #%0d", ir[7:0]);
-                if (alu_zero) begin
-                    pc_offset_sel <= 1;
+             JNZI: begin
+                $display("jnz #%0d", ir[7:0]);
+                if (~alu_zero) begin
+                    pc_offset_sel <= JUMP_TARGET;
                     jump_dest <= ir[7:0];
                 end
             end
               JZR: begin 
                 $display("jz reg");
-                pc_offset_sel <= 0;
+                pc_offset_sel <= NEXT_INSTRUCTION;
             end
               NOP: begin
                 $display("nop");
@@ -228,8 +220,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     always @(posedge clk, posedge reset) begin
         if (reset) begin
-            pc                <= 0;
-            pc_offset_sel     <= 0;
+            pc_offset_sel     <= RESET;
             mem_address       <= 0;
             mem_read_en       <= 0;
             mem_write_en      <= 0;

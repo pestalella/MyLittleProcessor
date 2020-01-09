@@ -1,3 +1,4 @@
+`include "execution_logger.sv"
 `include "execution_unit.sv"
 `include "isa_definition.sv"
 
@@ -11,8 +12,15 @@ module tb_exec_unit ();
     string infile_path;
     integer bytes_read;
 
-//    exec_unit #(.DATA_BITS(8)) dut(.clk(clk), .reset(reset));
     cpu_top dut(.clk(clk), .reset(reset));
+
+    bind dut execution_logger ec_logger(
+        .clk(clk),
+        .memory(memory.memory), 
+        .r0(u_exec.registers.r0.bits),
+        .r1(u_exec.registers.r1.bits),
+        .r2(u_exec.registers.r2.bits)
+    );
 
     always begin
         #5 clk = !clk;
