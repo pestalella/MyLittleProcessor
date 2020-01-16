@@ -3,7 +3,8 @@ MyLittleProcessor.cache
 MyLittleProcessor.hw
 MyLittleProcessor.ioplanning
 MyLittleProcessor.ip_user_files
-MyLittleProcessor.sim
 MyLittleProcessor.runs
+MyLittleProcessor.sim
+MyLittleProcessor.srcs
 vivado*
 *.wcfg

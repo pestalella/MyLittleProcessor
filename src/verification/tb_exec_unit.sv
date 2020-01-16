@@ -12,11 +12,21 @@ module tb_exec_unit ();
     string infile_path;
     integer bytes_read;
 
-    cpu_top dut(.clk(clk), .reset(reset));
+    bit pwm_out0;
+    bit pwm_out1;
+    bit pwm_out2;
+    bit pwm_out3;
+
+    cpu_top dut(.clk(clk),
+                .reset(reset),
+                .pwm_out0(pwm_out0),
+                .pwm_out1(pwm_out1),
+                .pwm_out2(pwm_out2),
+                .pwm_out3(pwm_out3));
 
     bind dut execution_logger ec_logger(
         .clk(clk),
-        .memory(memory.memory), 
+        .memory(memory.memory),
         .r0(u_exec.registers.r0.bits),
         .r1(u_exec.registers.r1.bits),
         .r2(u_exec.registers.r2.bits)
@@ -26,7 +36,7 @@ module tb_exec_unit ();
         #5 clk = !clk;
         counter += 1;
     end
-    
+
     initial begin
         clk = 0;
         counter = 0;
@@ -39,11 +49,11 @@ module tb_exec_unit ();
 
         if ($value$plusargs("memory_file=%s", infile_path)) begin
             $display ("memory_file=%s", infile_path);
-        end else 
+        end else
             $fatal(2, "Please specify an input file with the memory contents '+memory_file=<mem_file>'");
 
         mem_fd = $fopen(infile_path, "r");
-        if (mem_fd == 0) 
+        if (mem_fd == 0)
             $fatal(2, "%s could not be opened", infile_path);
         // Read at most 256 bytes
         bytes_read = $fread(dut.memory.memory, mem_fd);
