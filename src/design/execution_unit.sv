@@ -211,10 +211,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
              JNZI: begin
                 $display("jnz #%0d", ir[7:0]);
-                if (~alu_zero) begin
-                    pc_offset_sel <= JUMP_TARGET;
-                    jump_dest <= ir[7:0];
-                end
             end
               JZR: begin
                 $display("jz reg");
@@ -268,7 +264,16 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     state       <= DECODE;
                 end
                 DECODE: begin
-                    ir[7:0]      <= rd_ram_data;
+                    // Need to compute the jump target early, otherwise
+                    // the instruction right after the jnz is executed
+                    // before branching
+                    if (ir[15:12] == JNZI) begin
+                        if (~alu_zero) begin
+                            pc_offset_sel <= JUMP_TARGET;
+                            jump_dest <= rd_ram_data;
+                        end
+                    end
+
                     wr_mem_en    <= 0;
                     state        <= EXECUTE;
                 end
