@@ -4,7 +4,7 @@
 
 import isa_pkg::*;
 
-module tb_exec_unit ();
+module tb_top ();
     bit clk;
     bit reset;
     int counter;
