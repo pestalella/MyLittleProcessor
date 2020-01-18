@@ -4,7 +4,6 @@
 `timescale 1ns / 1ps
 
 `include "muxers.sv"
-`include "register_bus.sv"
 `include "register.sv"
 
 module register_file #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
@@ -51,7 +50,7 @@ module register_file #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
     wire [DATA_BITS-1:0] r6_data_in;
     wire [DATA_BITS-1:0] r7_data_in;
 
-    reg_mux8to1 rd0_mux(.sel(rd0_addr), 
+    reg_mux8to1 rd0_mux(.sel(rd0_addr),
                     .in0(r0_data_out0),
                     .in1(r1_data_out0),
                     .in2(r2_data_out0),
@@ -62,7 +61,7 @@ module register_file #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
                     .in7(r7_data_out0),
                     .out(rd0_data));
 
-    reg_mux8to1 rd1_mux(.sel(rd1_addr), 
+    reg_mux8to1 rd1_mux(.sel(rd1_addr),
                     .in0(r0_data_out1),
                     .in1(r1_data_out1),
                     .in2(r2_data_out1),
@@ -83,7 +82,7 @@ module register_file #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
                     .out5(r5_data_in),
                     .out6(r6_data_in),
                     .out7(r7_data_in));
-    
+
     register #(.DATA_BITS(DATA_BITS)) r0(
         .clk(clk),
         .reset(reset),
