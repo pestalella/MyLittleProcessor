@@ -6,6 +6,7 @@
 `include "alu.sv"
 `include "constants_pkg.sv"
 `include "isa_definition.sv"
+`include "muxers.sv"
 
 import constants_pkg::*;
 import isa_pkg::*;
@@ -59,7 +60,8 @@ module exec_unit #(parameter DATA_BITS = 8) (
                    REG_FILE_RD0 = 3} reg_input_sel;
 
     alu #(.DATA_BITS(REGISTER_DATA_BITS))
-        arith_unit(.a(regfile_rd0_data),
+        arith_unit(.reset(reset),
+                   .a(regfile_rd0_data),
                    .b(alu_input_b),
                    .cin(subtract),
                    .result(alu_output),
@@ -247,14 +249,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
             state             <= IDLE;
             current_inst      <= NOP;
         end else begin
-`ifdef VIVADO_SIMULATION
-           $display("%15s  Memory: %h %h %h %h %h r0=%h r1=%h r2=%h",
-               state.name,
-               memory.memory[0:3], memory.memory[4:7],
-               memory.memory[8:11], memory.memory[12:15],
-               memory.memory[16:19],
-               registers.r0.bits, registers.r1.bits, registers.r2.bits);
-`endif
             case (state)
                 FETCH_MSB_IR: begin
                     // Prepare read transaction
@@ -267,6 +261,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 FETCH_LSB_IR: begin
                     // Now read the data from the completed read transaction
                     ir[15:8]    <= rd_ram_data;
+                    current_inst <= OpCode'(rd_ram_data[7:4]);
                     // And prepare next transaction
                     rd_mem_addr <= pc + 1;
                     rd_mem_en   <= 1;
@@ -274,7 +269,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 end
                 DECODE: begin
                     ir[7:0]      <= rd_ram_data;
-                    current_inst <= OpCode'(ir[15:12]);
                     wr_mem_en    <= 0;
                     state        <= EXECUTE;
                 end
