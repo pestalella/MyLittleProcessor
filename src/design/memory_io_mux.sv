@@ -1,3 +1,10 @@
+`ifndef MEMORY_IO_MUX_SV
+`define MEMORY_IO_MUX_SV
+
+`include "constants_pkg.sv"
+
+import constants_pkg::*;
+
 module memory_io_mux(
     input wire clk,
 
@@ -73,3 +80,5 @@ module memory_io_mux(
     assign out_port3 = out_port3_reg;
 
 endmodule
+
+`endif
