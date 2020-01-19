@@ -11,6 +11,9 @@
 import constants_pkg::*;
 import isa_pkg::*;
 
+typedef enum bit [2:0] {IDLE, FETCH_MSB_IR, FETCH_LSB_IR, DECODE,
+                        EXECUTE, LOAD_STAGE, STORE_START, STORE_END} ExecutionStage;
+
 module exec_unit #(parameter DATA_BITS = 8) (
     input wire clk,
     input wire reset,
@@ -36,7 +39,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     logic [MEMORY_ADDRESS_BITS-1:0] wr_mem_addr;
 
     bit mem_write_in_progress;
-    enum bit [2:0] {IDLE, FETCH_MSB_IR, FETCH_LSB_IR, DECODE, EXECUTE, LOAD_STAGE, STORE_START, STORE_END} state;
+    ExecutionStage state;
 
     assign rd_ram_en = rd_mem_en;
     assign wr_ram_en = wr_mem_en;
@@ -273,7 +276,8 @@ module exec_unit #(parameter DATA_BITS = 8) (
                             jump_dest <= rd_ram_data;
                         end
                     end
-
+                    ir[7:0]      <= rd_ram_data;
+                    rd_mem_en    <= 0;
                     wr_mem_en    <= 0;
                     state        <= EXECUTE;
                 end

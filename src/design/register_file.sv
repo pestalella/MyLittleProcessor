@@ -6,7 +6,8 @@
 `include "muxers.sv"
 `include "register.sv"
 
-module register_file #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
+module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
+                                  DATA_BITS = REGISTER_DATA_BITS ) (
     input wire clk,
     input wire reset,
     // register reading

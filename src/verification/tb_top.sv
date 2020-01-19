@@ -33,7 +33,7 @@ module tb_top ();
     );
 
     always begin
-        #5 clk = !clk;
+        #5 clk = ~clk;
         counter += 1;
     end
 
