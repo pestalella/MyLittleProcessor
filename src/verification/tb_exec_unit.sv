@@ -1,6 +1,8 @@
 `include "constants_pkg.sv"
 `include "execution_unit.sv"
 `include "isa_definition.sv"
+`include "regfile_if.sv"
+`include "regfile_mon.sv"
 
 import constants_pkg::*;
 import isa_pkg::*;
@@ -52,34 +54,22 @@ module eu_state_change_monitor (
     end
 endmodule
 
-module register_file_monitor (
+module regfile_probe(
     input wire clk,
     input wire reset,
-    // register reading
-    input bit [REGISTER_ADDRESS_BITS-1:0] rd0_addr,
-    input bit rd0_enable,
-    input logic [REGISTER_DATA_BITS-1:0] rd0_data,
-    // register reading
-    input bit [REGISTER_ADDRESS_BITS-1:0] rd1_addr,
-    input bit rd1_enable,
-    input logic [REGISTER_DATA_BITS-1:0] rd1_data,
-    // register writing
-    input bit [REGISTER_ADDRESS_BITS-1:0] wr_addr,
-    input bit wr_enable,
-    input logic [REGISTER_DATA_BITS-1:0] wr_data);
+    input wire [REGISTER_ADDRESS_BITS-1:0] wr_addr,
+    input wire wr_enable,
+    input wire [REGISTER_DATA_BITS-1:0] wr_data);
 
-    always @(posedge reset) begin
-        $display("RF_MONITOR [%0dns]: Reset triggered", $time);
-    end
+    regfile_if vif();
 
-    always @(posedge clk) begin
-        if (wr_enable) begin
-            $display("RF_MONITOR [%0dns]: Write to register r%0d, value %02h", $time, wr_addr, wr_data);
-        end
-    end
+    assign vif.clk = clk;
+    assign vif.reset = reset;
+    assign vif.wr_addr = wr_addr;
+    assign vif.wr_enable = wr_enable;
+    assign vif.wr_data = wr_data;
 
 endmodule
-
 
 module tb_exec_unit ();
 
@@ -109,24 +99,17 @@ module tb_exec_unit ();
         .wr_ram_data(wr_ram_data)
     );
 
-    bind dut.registers register_file_monitor rf_mon(
+    bind dut.registers regfile_probe rf_probe(
         .clk(clk),
         .reset(reset),
-
-        .rd0_addr(rd0_addr),
-        .rd0_enable(rd0_enable),
-        .rd0_data(rd0_data),
-
-        .rd1_addr(rd1_addr),
-        .rd1_enable(rd1_enable),
-        .rd1_data(rd1_data),
 
         .wr_addr(wr_addr),
         .wr_enable(wr_enable),
         .wr_data(wr_data));
 
     bind dut eu_state_change_monitor state_mon(
-        .state(state)
+        .state(state),
+        .new_instruction()
     );
 
     assign new_instruction_wire = dut.state_mon.new_instruction;
@@ -146,12 +129,24 @@ module tb_exec_unit ();
         #5 clk = ~clk;
     end
 
-    initial begin
+    task reset_dut;
         clk = 0;
         // reset the DUT
         reset = 1;
         @(posedge clk) reset = 0;
+    endtask
 
+    initial begin
+        mailbox mon2scb;
+        regfile_mon rf_mon;
+
+        mon2scb = new();
+        rf_mon = new(dut.registers.rf_probe.vif, mon2scb);
+
+        fork
+            reset_dut();
+            rf_mon.run();
+        join_any
 
     end
 

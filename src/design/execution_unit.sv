@@ -120,7 +120,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             pc <= next_pc_input;
     end
 
-    function execute_instruction;
+    function void execute_instruction;
         // By default, pc = pc + 2
         pc_offset_sel <= NEXT_INSTRUCTION;
 
