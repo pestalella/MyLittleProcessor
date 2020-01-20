@@ -122,9 +122,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
     end
 
     function void execute_instruction;
-        // By default, pc = pc + 2
-        pc_offset_sel <= NEXT_INSTRUCTION;
-
         reg_input_sel <= ALU_OUTPUT;
         reg_wr_en     <= 0;
         reg_rd0_en    <= 0;
@@ -256,6 +253,8 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     rd_mem_en   <= 1;
                     wr_mem_en   <= 0;
                     reg_wr_en   <= 0;
+                    // By default, pc = pc + 2
+                    pc_offset_sel <= NEXT_INSTRUCTION;
                     state       <= FETCH_LSB_IR;
                 end
                 FETCH_LSB_IR: begin
