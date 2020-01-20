@@ -59,26 +59,15 @@ module reg_demux1to8 #(parameter DATA_BITS = 8) (
     output logic [DATA_BITS-1:0] out6,
     output logic [DATA_BITS-1:0] out7
     );
-    always @(sel or in) begin
-        out0 <= {DATA_BITS{1'bz}};
-        out1 <= {DATA_BITS{1'bz}};
-        out2 <= {DATA_BITS{1'bz}};
-        out3 <= {DATA_BITS{1'bz}};
-        out4 <= {DATA_BITS{1'bz}};
-        out5 <= {DATA_BITS{1'bz}};
-        out6 <= {DATA_BITS{1'bz}};
-        out7 <= {DATA_BITS{1'bz}};
-        case (sel)
-            'b000: out0 <= in;
-            'b001: out1 <= in;
-            'b010: out2 <= in;
-            'b011: out3 <= in;
-            'b100: out4 <= in;
-            'b101: out5 <= in;
-            'b110: out6 <= in;
-            'b111: out7 <= in;
-        endcase
-    end
+    
+    assign out0 = (sel == 'b000) ? in : {DATA_BITS{1'bz}};
+    assign out1 = (sel == 'b001) ? in : {DATA_BITS{1'bz}};
+    assign out2 = (sel == 'b010) ? in : {DATA_BITS{1'bz}};
+    assign out3 = (sel == 'b011) ? in : {DATA_BITS{1'bz}};
+    assign out4 = (sel == 'b100) ? in : {DATA_BITS{1'bz}};
+    assign out5 = (sel == 'b101) ? in : {DATA_BITS{1'bz}};
+    assign out6 = (sel == 'b110) ? in : {DATA_BITS{1'bz}};
+    assign out7 = (sel == 'b111) ? in : {DATA_BITS{1'bz}};
 endmodule
 
 `endif
