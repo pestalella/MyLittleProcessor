@@ -26,7 +26,7 @@ class regfile_sb;
 
             case (trans.action)
                 regfile_trans::RESET: begin
-                    $display("RF_SB [%0dns] Reset. All registers set to 0x00", $time, trans.register, trans.value);
+                    $display("RF_SB [%0dns] Reset. All registers set to 0x00", $time);
                     for (int i = 0; i < num_regs; i++) begin
                         register_values[i] = '0;
                     end

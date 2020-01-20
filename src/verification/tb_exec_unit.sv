@@ -33,13 +33,7 @@ module memory_mock (
         $display("MEMORY_MOCK [%0dns]: new instruction (%0d)", $time, counter);
     end
 
-//    assign prog_counter = (counter*2 + rd_addr[0]) % 8;
     assign rd_data = instr_stream[rd_addr % 8];
-
-//     always @(posedge clk or rd_en) begin
-// //        rd_data <= rd_addr[0] ? '0 : {NOP, 4'b0000};
-//         rd_data <= instr_stream[((counter-1)*2 + rd_addr[0]) % 8];
-//     end
 endmodule
 
 module eu_state_change_monitor (
