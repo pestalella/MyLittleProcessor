@@ -3,8 +3,11 @@
 
 `timescale 1ns / 1ps
 
+`include "constants_pkg.sv"
 `include "muxers.sv"
 `include "register.sv"
+
+import constants_pkg::*;
 
 module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
                                   DATA_BITS = REGISTER_DATA_BITS ) (

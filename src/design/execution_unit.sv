@@ -7,6 +7,7 @@
 `include "constants_pkg.sv"
 `include "isa_definition.sv"
 `include "muxers.sv"
+`include "register_file.sv"
 
 import constants_pkg::*;
 import isa_pkg::*;
