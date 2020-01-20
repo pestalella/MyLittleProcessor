@@ -3,6 +3,7 @@
 `include "isa_definition.sv"
 `include "regfile_if.sv"
 `include "regfile_mon.sv"
+`include "regfile_sb.sv"
 
 import constants_pkg::*;
 import isa_pkg::*;
@@ -46,7 +47,7 @@ module eu_state_change_monitor (
     output logic new_instruction);
 
     always @(state) begin
-        $display("EU_STATE_MON [%0dns]: state changed to %s", $time, state.name);
+//        $display("EU_STATE_MON [%0dns]: state changed to %s", $time, state.name);
         if (state == FETCH_MSB_IR)
             new_instruction <= 1;
         else
@@ -133,19 +134,23 @@ module tb_exec_unit ();
         clk = 0;
         // reset the DUT
         reset = 1;
-        @(posedge clk) reset = 0;
+        @(posedge clk) 
+            #5 reset = 0;
     endtask
 
     initial begin
         mailbox mon2scb;
         regfile_mon rf_mon;
+        regfile_sb rf_sb;
 
         mon2scb = new();
         rf_mon = new(dut.registers.rf_probe.vif, mon2scb);
+        rf_sb = new(mon2scb);
 
         fork
             reset_dut();
             rf_mon.run();
+            rf_sb.run();
         join_any
 
     end

@@ -25,13 +25,13 @@ class regfile_sb;
             mon2scb.get(trans);
 
             case (trans.action)
-                RESET: begin
+                regfile_trans::RESET: begin
                     $display("RF_SB [%0dns] Reset. All registers set to 0x00", $time, trans.register, trans.value);
                     for (int i = 0; i < num_regs; i++) begin
                         register_values[i] = '0;
                     end
                 end
-                WRITE: begin
+                regfile_trans::WRITE: begin
                     $display("RF_SB [%0dns] Write to register r%0d, value %02h", $time, trans.register, trans.value);
                     register_values[trans.register] = trans.value;
                 end
