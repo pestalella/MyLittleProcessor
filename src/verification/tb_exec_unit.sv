@@ -13,13 +13,16 @@ module memory_mock (
     input wire new_instruction,
     input  wire rd_en,
     input  wire [MEMORY_ADDRESS_BITS-1:0] rd_addr,
-    output wire [MEMORY_DATA_BITS-1:0] rd_data,
+    output logic [MEMORY_DATA_BITS-1:0] rd_data,
     input  wire wr_en,
     input  wire [MEMORY_ADDRESS_BITS-1:0] wr_addr,
-    input  wire [MEMORY_DATA_BITS-1:0] wr_data);
+    input  wire [MEMORY_DATA_BITS-1:0] wr_data
+    );
+
+    event test_finished;
 
     int counter = 0;
-    logic [MEMORY_ADDRESS_BITS-1:0] prog_counter;
+//    logic [MEMORY_ADDRESS_BITS-1:0] prev_address = ;
 
     bit [MEMORY_DATA_BITS-1:0] instr_stream[8] = {
         {NOP, 4'b0000}, 8'b0,
@@ -28,12 +31,33 @@ module memory_mock (
         {MOVIR, 4'b0010}, 8'b00010001
     };
 
-    always @(posedge new_instruction) begin
-        counter += 1;
-        $display("MEMORY_MOCK [%0dns]: new instruction (%0d)", $time, counter);
+    bit [15:0] injected_instruction;
+
+    function bit[15:0] random_mov;
+        bit [3:0] opcode = MOVIR;
+        bit [2:0] dest_reg = $urandom;
+        bit [7:0] value = $urandom;
+        $display("MEM_MOCK [%0dns] new instruction MOV r%0d, #%02h", $time, dest_reg, value);
+        return {{opcode, {1'b0, dest_reg}}, value};
+    endfunction
+
+    always_comb begin
+        $display("MEM_MOCK [%0dns] rd_en:%0d addr:%02h", $time, rd_en, rd_addr);
+        rd_data <= test_finished.triggered()? {NOP, 4'b0000} :
+                   (rd_en? (rd_addr[0] ? injected_instruction[7:0] : injected_instruction[15:8]) :
+                           rd_data);
     end
 
-    assign rd_data = instr_stream[rd_addr % 8];
+    always @(posedge new_instruction) begin
+        counter += 1;
+        injected_instruction <= random_mov();
+        if (counter >= 6) begin
+            $display("MEM_MOCK [%0dns]: Test-finished event triggered", $time);
+            -> test_finished;
+
+        end
+        $display("MEM_MOCK [%0dns]: new instruction (%0d)", $time, counter);
+    end
 endmodule
 
 module eu_state_change_monitor (
@@ -128,14 +152,15 @@ module tb_exec_unit ();
         clk = 0;
         // reset the DUT
         reset = 1;
-        @(posedge clk) 
+        @(posedge clk)
             #5 reset = 0;
     endtask
+
+    regfile_sb rf_sb;
 
     initial begin
         mailbox mon2scb;
         regfile_mon rf_mon;
-        regfile_sb rf_sb;
 
         mon2scb = new();
         rf_mon = new(dut.registers.rf_probe.vif, mon2scb);
@@ -146,7 +171,11 @@ module tb_exec_unit ();
             rf_mon.run();
             rf_sb.run();
         join_any
+    end
 
+    always @(fake_mem.test_finished.triggered) begin
+        rf_sb.stop();
+        $finish();
     end
 
 endmodule

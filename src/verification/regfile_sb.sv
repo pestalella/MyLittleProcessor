@@ -19,7 +19,11 @@ class regfile_sb;
 
     endfunction
 
-    task run;
+    task stop;
+        $display("RF_SB [%0dns] TEST FINISHED", $time);
+    endtask
+
+    task receive_rf_transactions;
         regfile_trans trans;
         forever begin
             mon2scb.get(trans);
@@ -37,7 +41,13 @@ class regfile_sb;
                 end
             endcase
         end
-    endtask
+    endtask : receive_rf_transactions
+
+    task run;
+        fork
+            receive_rf_transactions();
+        join_any
+    endtask : run
 endclass
 
 `endif
