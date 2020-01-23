@@ -1,64 +1,15 @@
+
 `include "constants_pkg.sv"
 `include "execution_unit.sv"
 `include "isa_definition.sv"
+`include "memory_driver.sv"
+`include "memory_if.sv"
 `include "regfile_if.sv"
 `include "regfile_mon.sv"
 `include "regfile_sb.sv"
 
 import constants_pkg::*;
 import isa_pkg::*;
-
-module memory_mock (
-    input wire clk,
-    input wire new_instruction,
-    input  wire rd_en,
-    input  wire [MEMORY_ADDRESS_BITS-1:0] rd_addr,
-    output logic [MEMORY_DATA_BITS-1:0] rd_data,
-    input  wire wr_en,
-    input  wire [MEMORY_ADDRESS_BITS-1:0] wr_addr,
-    input  wire [MEMORY_DATA_BITS-1:0] wr_data
-    );
-
-    event test_finished;
-
-    int counter = 0;
-//    logic [MEMORY_ADDRESS_BITS-1:0] prev_address = ;
-
-    bit [MEMORY_DATA_BITS-1:0] instr_stream[8] = {
-        {NOP, 4'b0000}, 8'b0,
-        {MOVIR, 4'b0000}, 8'b01010101,
-        {MOVIR, 4'b0001}, 8'b10101010,
-        {MOVIR, 4'b0010}, 8'b00010001
-    };
-
-    bit [15:0] injected_instruction;
-
-    function bit[15:0] random_mov;
-        bit [3:0] opcode = MOVIR;
-        bit [2:0] dest_reg = $urandom;
-        bit [7:0] value = $urandom;
-        $display("MEM_MOCK [%0dns] new instruction MOV r%0d, #%02h", $time, dest_reg, value);
-        return {{opcode, {1'b0, dest_reg}}, value};
-    endfunction
-
-    always_comb begin
-        $display("MEM_MOCK [%0dns] rd_en:%0d addr:%02h", $time, rd_en, rd_addr);
-        rd_data <= test_finished.triggered()? {NOP, 4'b0000} :
-                   (rd_en? (rd_addr[0] ? injected_instruction[7:0] : injected_instruction[15:8]) :
-                           rd_data);
-    end
-
-    always @(posedge new_instruction) begin
-        counter += 1;
-        injected_instruction <= random_mov();
-        if (counter >= 6) begin
-            $display("MEM_MOCK [%0dns]: Test-finished event triggered", $time);
-            -> test_finished;
-
-        end
-        $display("MEM_MOCK [%0dns]: new instruction (%0d)", $time, counter);
-    end
-endmodule
 
 module eu_state_change_monitor (
     input ExecutionStage state,
@@ -105,17 +56,19 @@ module tb_exec_unit ();
 
     wire new_instruction_wire;
 
+    memory_if mem_if();
+
     exec_unit #(.DATA_BITS(8)) dut (
         .clk(clk),
         .reset(reset),
 
-        .rd_ram_en(rd_ram_en),
-        .rd_ram_addr(rd_ram_addr),
-        .rd_ram_data(rd_ram_data),
+        .rd_ram_en(mem_if.rd_en),
+        .rd_ram_addr(mem_if.rd_addr),
+        .rd_ram_data(mem_if.rd_data),
 
-        .wr_ram_en(wr_ram_en),
-        .wr_ram_addr(wr_ram_addr),
-        .wr_ram_data(wr_ram_data)
+        .wr_ram_en(mem_if.wr_en),
+        .wr_ram_addr(mem_if.wr_addr),
+        .wr_ram_data(mem_if.wr_data)
     );
 
     bind dut.registers regfile_probe rf_probe(
@@ -130,25 +83,17 @@ module tb_exec_unit ();
         .state(state),
         .new_instruction()
     );
-
     assign new_instruction_wire = dut.state_mon.new_instruction;
-
-    memory_mock fake_mem (
-        .clk(clk),
-        .new_instruction(new_instruction_wire),
-        .rd_en(rd_ram_en),
-        .rd_addr(rd_ram_addr),
-        .rd_data(rd_ram_data),
-        .wr_en(wr_ram_en),
-        .wr_addr(wr_ram_addr),
-        .wr_data(wr_ram_data)
-    );
 
     always begin
         #5 clk = ~clk;
     end
 
-    task reset_dut;
+    task reset_dut(mailbox drv2scb);
+        regfile_trans trans = new();
+        trans.action = regfile_trans::RESET;
+        drv2scb.put(trans);
+
         clk = 0;
         // reset the DUT
         reset = 1;
@@ -157,25 +102,36 @@ module tb_exec_unit ();
     endtask
 
     regfile_sb rf_sb;
+    memory_driver mem_drv;
+
+    always_ff @(posedge new_instruction_wire) begin
+        mem_drv.new_instruction();
+    end
 
     initial begin
         mailbox mon2scb;
+        mailbox drv2scb;
         regfile_mon rf_mon;
 
         mon2scb = new();
+        drv2scb = new();
+        mem_drv = new(mem_if, drv2scb);
         rf_mon = new(dut.registers.rf_probe.vif, mon2scb);
-        rf_sb = new(mon2scb);
+        rf_sb = new(drv2scb, mon2scb);
 
         fork
-            reset_dut();
+            reset_dut(drv2scb);
             rf_mon.run();
             rf_sb.run();
+            mem_drv.run();
         join_any
     end
 
-    always @(fake_mem.test_finished.triggered) begin
-        rf_sb.stop();
-        $finish();
+    always @(posedge clk) begin
+        if (mem_drv.test_finished) begin
+            rf_sb.stop();
+            $finish();
+        end
     end
 
 endmodule
