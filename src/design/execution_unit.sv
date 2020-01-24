@@ -72,7 +72,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                    .cout(alu_carry),
                    .zero(alu_zero));
 
-    reg_mux2to1 alu_inputB_mux(.sel(alu_inputB_sel),
+    mux2to1 alu_inputB_mux(.sel(alu_inputB_sel),
                                .in0(regfile_rd1_data),
                                .in1(inst_immediate),
                                .out(alu_input_b));
@@ -94,7 +94,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                   .wr_addr(reg_wr_addr),
                   .wr_data(register_file_input));
 
-    reg_mux4to1 reg_input_mux(.sel(reg_input_sel),
+    mux4to1 reg_input_mux(.sel(reg_input_sel),
                               .in0(alu_output),
                               .in1(inst_immediate),
                               .in2(load_mem),
@@ -105,7 +105,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     wire [JUMP_OFFSET_BITS-1:0] next_pc_input;
     bit [JUMP_OFFSET_BITS-1:0] jump_dest;
 
-    reg_mux4to1 #(.DATA_BITS(JUMP_OFFSET_BITS))
+    mux4to1 #(.DATA_BITS(JUMP_OFFSET_BITS))
         pc_offset_mux(.sel(pc_offset_sel),
                       .in0('0),
                       .in1((state==FETCH_LSB_IR)? 8'(pc + 2) : pc),

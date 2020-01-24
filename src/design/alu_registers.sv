@@ -17,7 +17,7 @@ module alu_registers #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
     output wire [DATA_BITS-1:0] data_out,
     input constants_pkg::ALUOp op
     );
-        
+
     logic subtract;
     logic carry;
     wire [DATA_BITS-1:0] alu_input_a, alu_input_b, alu_output, register_file_input;
@@ -26,28 +26,28 @@ module alu_registers #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
 
     bit reg_input_sel;
 
-    alu #(.DATA_BITS(DATA_BITS)) 
-        arith_unit(.a(alu_input_a), 
-                   .b(alu_input_b), 
-                   .cin(subtract), 
-                   .result(alu_output), 
+    alu #(.DATA_BITS(DATA_BITS))
+        arith_unit(.a(alu_input_a),
+                   .b(alu_input_b),
+                   .cin(subtract),
+                   .result(alu_output),
                    .cout(carry));
 
-    register_file #(.ADDR_BITS(ADDR_BITS), 
+    register_file #(.ADDR_BITS(ADDR_BITS),
                     .DATA_BITS(DATA_BITS))
-        registers(.clk(clk), 
+        registers(.clk(clk),
                   .reset(reset),
-                  .rd0_addr(rd0_addr), 
-                  .rd1_addr(rd1_addr), 
-                  .wr_addr(wr_addr), 
-                  .rd0_data(alu_input_a), 
+                  .rd0_addr(rd0_addr),
+                  .rd1_addr(rd1_addr),
+                  .wr_addr(wr_addr),
+                  .rd0_data(alu_input_a),
                   .rd1_data(alu_input_b),
                   .wr_data(register_file_input),
-                  .rd0_enable(rd0_enable), 
+                  .rd0_enable(rd0_enable),
                   .rd1_enable(rd1_enable),
                   .wr_enable(wr_enable));
-    
-    reg_mux2to1 reg_input_mux(.sel(reg_input_sel),
+
+    mux2to1 reg_input_mux(.sel(reg_input_sel),
                               .in0(alu_output),
                               .in1(data_in),
                               .out(register_file_input));

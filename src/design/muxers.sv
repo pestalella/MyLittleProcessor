@@ -1,7 +1,7 @@
 `ifndef MUXERS_SV
 `define MUXERS_SV
 
-module reg_mux2to1 #(parameter DATA_BITS = 8) (
+module mux2to1 #(parameter DATA_BITS = 8) (
     input sel,
     input wire [DATA_BITS-1:0] in0,
     input wire [DATA_BITS-1:0] in1,
@@ -11,7 +11,7 @@ module reg_mux2to1 #(parameter DATA_BITS = 8) (
     assign out = (sel == 'b0)? in0 : in1;
 endmodule
 
-module reg_mux4to1 #(parameter DATA_BITS = 8) (
+module mux4to1 #(parameter DATA_BITS = 8) (
     input [1:0] sel,
     input wire [DATA_BITS-1:0] in0,
     input wire [DATA_BITS-1:0] in1,
@@ -25,7 +25,7 @@ module reg_mux4to1 #(parameter DATA_BITS = 8) (
                                 in3));
 endmodule
 
-module reg_mux8to1 #(parameter DATA_BITS = 8) (
+module mux8to1 #(parameter DATA_BITS = 8) (
     input [2:0] sel,
     input wire [DATA_BITS-1:0] in0,
     input wire [DATA_BITS-1:0] in1,
@@ -47,7 +47,7 @@ module reg_mux8to1 #(parameter DATA_BITS = 8) (
                                  in7))))));
 endmodule
 
-module reg_demux1to8 #(parameter DATA_BITS = 8) (
+module demux1to8 #(parameter DATA_BITS = 8) (
     input bit [2:0] sel,
     input logic [DATA_BITS-1:0] in,
     output logic [DATA_BITS-1:0] out0,
@@ -59,7 +59,7 @@ module reg_demux1to8 #(parameter DATA_BITS = 8) (
     output logic [DATA_BITS-1:0] out6,
     output logic [DATA_BITS-1:0] out7
     );
-    
+
     assign out0 = (sel == 'b000) ? in : {DATA_BITS{1'bz}};
     assign out1 = (sel == 'b001) ? in : {DATA_BITS{1'bz}};
     assign out2 = (sel == 'b010) ? in : {DATA_BITS{1'bz}};

@@ -54,7 +54,7 @@ module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
     wire [DATA_BITS-1:0] r6_data_in;
     wire [DATA_BITS-1:0] r7_data_in;
 
-    reg_mux8to1 rd0_mux(.sel(rd0_addr),
+    mux8to1 rd0_mux(.sel(rd0_addr),
                     .in0(r0_data_out0),
                     .in1(r1_data_out0),
                     .in2(r2_data_out0),
@@ -65,7 +65,7 @@ module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
                     .in7(r7_data_out0),
                     .out(rd0_data));
 
-    reg_mux8to1 rd1_mux(.sel(rd1_addr),
+    mux8to1 rd1_mux(.sel(rd1_addr),
                     .in0(r0_data_out1),
                     .in1(r1_data_out1),
                     .in2(r2_data_out1),
@@ -76,7 +76,7 @@ module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
                     .in7(r7_data_out1),
                     .out(rd1_data));
 
-    reg_demux1to8 wr_demux(.sel(wr_addr),
+    demux1to8 wr_demux(.sel(wr_addr),
                     .in(wr_data),
                     .out0(r0_data_in),
                     .out1(r1_data_in),
