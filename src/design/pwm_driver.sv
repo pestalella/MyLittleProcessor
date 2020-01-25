@@ -1,6 +1,8 @@
 `ifndef PWM_DRIVER_SV
 `define PWM_DRIVER_SV
 
+`include "muxers.sv"
+
 module pwm_driver(
     input wire clk,
     input wire reset,
@@ -16,22 +18,31 @@ bit [7:0] pwm_clk_counter = 0;
 
 bit [7:0] cutoff;
 bit [7:0] counter;
+bit [7:0] next_counter;
 bit out;
+enum bit {RESET, INCREASE} counter_input_sel;
 
 assign pwm_out = out;
 
+mux2to1 counter_input_mux(
+    .sel(counter_input_sel),
+    .in0('0),
+    .in1(next_counter),
+    .out(counter)
+);
+
 always @(posedge clk) begin
     if (reset) begin
+        counter_input_sel <= RESET;
         pwm_clk_counter <= '0;
-
         cutoff <= 'h7f;
-        counter <= '0;
-        out = 0;
     end else if (set_cutoff_en) begin
+        counter_input_sel <= RESET;
         cutoff <= cutoff_value;
-        counter <= 0;
-    end else
+    end else begin
+        counter_input_sel <= INCREASE;
         pwm_clk_counter <= (pwm_clk_counter > PWM_PERIOD-1)? 0 : pwm_clk_counter + 1;
+    end
 end
 
 assign clk_pwm = pwm_clk_counter > PWM_HALF_PERIOD? 1 : 0;
@@ -42,7 +53,7 @@ always @(posedge clk_pwm) begin
     end else begin
         out <= 0;
     end
-    counter <= counter + 1;
+    next_counter <= counter + 1;
 end
 
 endmodule
