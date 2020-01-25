@@ -8,7 +8,8 @@ module tb_top ();
     bit clk;
     bit reset;
     int counter;
-    integer mem_fd;
+    integer test_cfg_fd, mem_fd;
+    string line;
     string infile_path;
     integer bytes_read;
 
@@ -26,10 +27,16 @@ module tb_top ();
 
     bind dut execution_logger ec_logger(
         .clk(clk),
+        .state(u_exec.state),
         .memory(memory.memory),
         .r0(u_exec.registers.r0.bits),
         .r1(u_exec.registers.r1.bits),
-        .r2(u_exec.registers.r2.bits)
+        .r2(u_exec.registers.r2.bits),
+        .r3(u_exec.registers.r3.bits),
+        .r4(u_exec.registers.r4.bits),
+        .r5(u_exec.registers.r5.bits),
+        .r6(u_exec.registers.r6.bits),
+        .r7(u_exec.registers.r7.bits)
     );
 
     always begin
@@ -47,10 +54,16 @@ module tb_top ();
             dut.memory.memory[i+1] = 8'b0;
         end
 
-        if ($value$plusargs("memory_file=%s", infile_path)) begin
-            $display ("memory_file=%s", infile_path);
-        end else
-            $fatal(2, "Please specify an input file with the memory contents '+memory_file=<mem_file>'");
+        test_cfg_fd = $fopen ("test.cfg", "r");
+        if (test_cfg_fd == 0)
+            $fatal(2, "Couldn't open 'test.cfg' configuration file. Exiting.");
+
+        $fgets(infile_path, test_cfg_fd);
+
+        if (infile_path[infile_path.len()-1] == "\n")
+            infile_path = infile_path.substr(0, infile_path.len()-2);
+
+        $display ("Memory file: [%s]", infile_path);
 
         mem_fd = $fopen(infile_path, "r");
         if (mem_fd == 0)

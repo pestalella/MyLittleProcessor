@@ -3,9 +3,12 @@
 
 `timescale 1ns / 1ps
 
+`include "constants_pkg.sv"
+
 module execution_logger (
     input wire clk,
-    input wire [7:0] memory [0:255],
+    input ExecutionStage state,
+    input bit [7:0] memory [0:255],
     input wire [7:0] r0,
     input wire [7:0] r1,
     input wire [7:0] r2,
@@ -16,14 +19,14 @@ module execution_logger (
     input wire [7:0] r7
 );
     always @(posedge clk) begin
-//        $display("%15s  Memory: %h %h %h %h %h %h %h %h r0=%h r1=%h r2=%h", 
-//&        state.name, 
-        $display("Memory: %h %h %h %h %h %h %h %h r0=%h r1=%h r2=%h", 
-        memory[0:3], memory[4:7], 
-        memory[8:11], memory[12:15],
-        memory[16:19], memory[20:23],
-        memory[24:27], memory[28:31],
-        r0, r1, r2);        
+        if (state == FETCH_MSB_IR) begin
+            $display("Memory: %h %h %h %h %h %h %h %h r0=%h r1=%h r2=%h",
+                memory[0:3], memory[4:7],
+                memory[8:11], memory[12:15],
+                memory[16:19], memory[20:23],
+                memory[24:27], memory[28:31],
+                r0, r1, r2);
+        end
     end
 endmodule
 
