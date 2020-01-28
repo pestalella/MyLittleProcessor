@@ -11,7 +11,7 @@ module pwm_driver(
     output wire pwm_out
 );
 
-parameter PWM_PERIOD = 7'd1;   // divide input freq by 100
+parameter PWM_PERIOD = 7'd100;   // divide input freq by 100
 parameter PWM_HALF_PERIOD = PWM_PERIOD/2;
 bit clk_pwm;
 bit [7:0] pwm_clk_counter = 0;
@@ -31,7 +31,7 @@ mux2to1 counter_input_mux(
     .out(counter)
 );
 
-always @(posedge clk) begin
+always_ff @(posedge clk or posedge reset) begin
     if (reset) begin
         counter_input_sel <= RESET;
         pwm_clk_counter <= '0;
@@ -43,11 +43,11 @@ always @(posedge clk) begin
         counter_input_sel <= INCREASE;
         pwm_clk_counter <= (pwm_clk_counter > PWM_PERIOD-1)? 0 : pwm_clk_counter + 1;
     end
+    clk_pwm <= pwm_clk_counter > PWM_HALF_PERIOD? 1 : 0;
 end
 
-assign clk_pwm = pwm_clk_counter > PWM_HALF_PERIOD? 1 : 0;
 
-always @(posedge clk_pwm) begin
+always_ff @(posedge clk_pwm) begin
     if (counter < cutoff) begin
         out <= 1;
     end else begin
