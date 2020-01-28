@@ -135,6 +135,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             ADDRR: begin
                 reg_rd0_addr <= rd_ram_data[6:4];
                 reg_rd1_addr <= rd_ram_data[2:0];
+                reg_wr_addr    <= ir[10:8];
                 reg_rd0_en     <= 1;
                 reg_rd1_en     <= 1;
                 // Enable input to the ALU from the register file
@@ -144,6 +145,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
              ADDI: begin
                 reg_rd0_addr   <= ir[10:8];
+                reg_wr_addr    <= ir[10:8];
                 reg_rd0_en     <= 1;
                 inst_immediate <= rd_ram_data[7:0];
                 // Enable input to the ALU from the constant in the instruction
@@ -154,6 +156,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             SUBRR: begin
                 reg_rd0_addr  <= rd_ram_data[6:4];
                 reg_rd1_addr  <= rd_ram_data[2:0];
+                reg_wr_addr   <= ir[10:8];
                 reg_rd0_en    <= 1;
                 reg_rd1_en    <= 1;
                 // Enable input to the ALU from the register file
@@ -163,6 +166,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
              SUBI: begin
                 reg_rd0_addr   <= ir[10:8];
+                reg_wr_addr    <= ir[10:8];
                 reg_rd0_en     <= 1;
                 inst_immediate <= rd_ram_data[7:0];
                 alu_inputB_sel <= IMMEDIATE;
@@ -216,30 +220,30 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 $display("add r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
                 // Enable writes to the register file from the ALU
                 reg_input_sel  <= ALU_OUTPUT;
-                reg_wr_addr  <= ir[10:8];
                 reg_wr_en      <= 1;
                 // Addition op, therefore subtract=0
-                subtract <= 0;
+                subtract       <= 0;
             end
              ADDI: begin
                 $display("add r%0d #%h", ir[10:8], ir[7:0]);
                 // Enable writes to the register file from the ALU
                 reg_input_sel  <= ALU_OUTPUT;
-                reg_wr_addr    <= ir[10:8];
                 reg_wr_en      <= 1;
+                // Addition op, therefore subtract=0
+                subtract       <= 0;
             end
             SUBRR: begin
                 $display("sub r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
                 // Enable writes to the register file from the ALU
                 reg_input_sel <= ALU_OUTPUT;
-                reg_wr_addr   <= ir[10:8];
                 reg_wr_en     <= 1;
+                // Addition op, therefore subtract=1
+                subtract      <= 1;
             end
              SUBI: begin
                 $display("sub r%0d #%h", ir[10:8], ir[7:0]);
                 // Enable writes to the register file from the ALU
                 reg_input_sel  <= ALU_OUTPUT;
-                reg_wr_addr    <= ir[10:8];
                 reg_wr_en      <= 1;
                 // Subtraction op, therefore subtract=1
                 subtract       <= 1;
