@@ -20,12 +20,12 @@ module execution_logger (
 );
     always @(posedge clk) begin
         if (state == FETCH_MSB_IR) begin
-            $display("Memory: %h %h %h %h %h %h %h %h r0=%h r1=%h r2=%h",
+            $display("Memory: %h %h %h %h %h %h %h %h r0=%h r1=%h r2=%h r3=%h r4=%h r5=%h r6=%h r7=%h",
                 memory[0:3], memory[4:7],
                 memory[8:11], memory[12:15],
                 memory[16:19], memory[20:23],
                 memory[24:27], memory[28:31],
-                r0, r1, r2);
+                r0, r1, r2, r3, r4, r5, r6, r7);
         end
     end
 endmodule
