@@ -21,7 +21,7 @@ module alu  #(parameter DATA_BITS  = 8) (
 
     always_ff @(posedge clk) begin
         {cout, result} <= reg_result;
-                  zero <= reset? 0 : ~(|reg_result);
+                  zero <= reset? 0 : ~(|reg_result[DATA_BITS-1:0]);
     end
 endmodule
 
