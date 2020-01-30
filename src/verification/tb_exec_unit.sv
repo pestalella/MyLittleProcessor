@@ -7,6 +7,7 @@
 `include "regfile_if.sv"
 `include "regfile_mon.sv"
 `include "regfile_sb.sv"
+`include "regfile_trans.sv"
 
 import constants_pkg::*;
 import isa_pkg::*;
@@ -17,7 +18,7 @@ module eu_state_change_monitor (
 
     always @(state) begin
 //        $display("EU_STATE_MON [%0dns]: state changed to %s", $time, state.name);
-        if (state == FETCH_MSB_IR)
+        if (state == INSTR_FETCH_START)
             new_instruction <= 1;
         else
             new_instruction <= 0;
@@ -31,14 +32,38 @@ module regfile_probe(
     input wire wr_enable,
     input wire [REGISTER_DATA_BITS-1:0] wr_data);
 
-    regfile_if vif();
+    regfile_if rvif();
 
-    assign vif.clk = clk;
-    assign vif.reset = reset;
-    assign vif.wr_addr = wr_addr;
-    assign vif.wr_enable = wr_enable;
-    assign vif.wr_data = wr_data;
+    assign rvif.clk = clk;
+    assign rvif.reset = reset;
+    assign rvif.wr_addr = wr_addr;
+    assign rvif.wr_enable = wr_enable;
+    assign rvif.wr_data = wr_data;
+endmodule
 
+
+module reg_bits_probe(
+    input wire clk,
+    input wire [REGISTER_DATA_BITS-1:0] r0,
+    input wire [REGISTER_DATA_BITS-1:0] r1,
+    input wire [REGISTER_DATA_BITS-1:0] r2,
+    input wire [REGISTER_DATA_BITS-1:0] r3,
+    input wire [REGISTER_DATA_BITS-1:0] r4,
+    input wire [REGISTER_DATA_BITS-1:0] r5,
+    input wire [REGISTER_DATA_BITS-1:0] r6,
+    input wire [REGISTER_DATA_BITS-1:0] r7);
+
+    register_inspection_if reg_if();
+
+    assign reg_if.clk = clk;
+    assign reg_if.r0 = r0;
+    assign reg_if.r1 = r1;
+    assign reg_if.r2 = r2;
+    assign reg_if.r3 = r3;
+    assign reg_if.r4 = r4;
+    assign reg_if.r5 = r5;
+    assign reg_if.r6 = r6;
+    assign reg_if.r7 = r7;
 endmodule
 
 module tb_exec_unit ();
@@ -83,6 +108,19 @@ module tb_exec_unit ();
         .state(state),
         .new_instruction()
     );
+
+    bind dut.registers reg_bits_probe regbits_probe(
+        .clk(clk),
+        .r0(regs[0].r.bits),
+        .r1(regs[1].r.bits),
+        .r2(regs[2].r.bits),
+        .r3(regs[3].r.bits),
+        .r4(regs[4].r.bits),
+        .r5(regs[5].r.bits),
+        .r6(regs[6].r.bits),
+        .r7(regs[7].r.bits)
+    );
+
     assign new_instruction_wire = dut.state_mon.new_instruction;
 
     always begin
@@ -90,7 +128,8 @@ module tb_exec_unit ();
     end
 
     task reset_dut(mailbox drv2scb);
-        regfile_trans trans = new();
+        regfile_trans trans;
+        trans = new();
         trans.action = regfile_trans::RESET;
         drv2scb.put(trans);
 
@@ -116,8 +155,8 @@ module tb_exec_unit ();
         mon2scb = new();
         drv2scb = new();
         mem_drv = new(mem_if, drv2scb);
-        rf_mon = new(dut.registers.rf_probe.vif, mon2scb);
-        rf_sb = new(drv2scb, mon2scb);
+        rf_mon = new(dut.registers.rf_probe.rvif, mon2scb);
+        rf_sb = new(drv2scb, mon2scb, dut.registers.regbits_probe.reg_if);
 
         fork
             reset_dut(drv2scb);
