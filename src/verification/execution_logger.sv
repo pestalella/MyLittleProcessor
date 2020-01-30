@@ -5,6 +5,8 @@
 
 `include "constants_pkg.sv"
 
+import constants_pkg::*;
+
 module execution_logger (
     input wire clk,
     input ExecutionStage state,
@@ -19,7 +21,7 @@ module execution_logger (
     input wire [7:0] r7
 );
     always @(posedge clk) begin
-        if (state == FETCH_MSB_IR) begin
+        if (state == INSTR_FETCH_START) begin
             $display("Memory: %h %h %h %h %h %h %h %h r0=%h r1=%h r2=%h r3=%h r4=%h r5=%h r6=%h r7=%h",
                 memory[0:3], memory[4:7],
                 memory[8:11], memory[12:15],
