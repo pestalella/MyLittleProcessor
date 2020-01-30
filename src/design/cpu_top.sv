@@ -2,6 +2,7 @@
 `include "memory_io_mux.sv"
 `include "pwm_driver.sv"
 `include "ram.sv"
+`include "rom.sv"
 
 module cpu_top (
     input wire clk,
@@ -52,13 +53,16 @@ module cpu_top (
         .rd_mem_en(exec_unit_rd_mem_en),
         .rd_mem_addr(exec_unit_rd_mem_addr),
         .rd_mem_data(exec_unit_rd_mem_data),
+
         .wr_mem_en(exec_unit_wr_mem_en),
         .wr_mem_addr(exec_unit_wr_mem_addr),
         .wr_mem_data(exec_unit_wr_mem_data),
 
+
         .rd_ram_en(rd_ram_en),
         .rd_ram_addr(rd_ram_addr),
         .rd_ram_data(rd_ram_data),
+
         .wr_ram_en(wr_ram_en),
         .wr_ram_addr(wr_ram_addr),
         .wr_ram_data(wr_ram_data),
@@ -73,15 +77,21 @@ module cpu_top (
         .out_port3_write_en(pwm_out3_set_cutoff_en)
     );
 
-    ram #(.ADDR_BITS(MEMORY_ADDRESS_BITS),
-          .DATA_BITS(MEMORY_DATA_BITS))
-        memory(.clk(clk),
-               .rd_en(rd_ram_en),
+    rom #(.ADDR_BITS(MEMORY_ADDRESS_BITS),
+          .DATA_BITS(MEMORY_DATA_BITS),
+          .memory_file("pwm.mem"))
+        memory(.rd_en(rd_ram_en),
                .rd_addr(rd_ram_addr),
-               .rd_data(rd_ram_data),
-               .wr_en(wr_ram_en),
-               .wr_addr(wr_ram_addr),
-               .wr_data(wr_ram_data));
+               .rd_data(rd_ram_data));
+    // ram #(.ADDR_BITS(MEMORY_ADDRESS_BITS),
+    //       .DATA_BITS(MEMORY_DATA_BITS))
+    //     memory(.clk(clk),
+    //            .rd_en(rd_ram_en),
+    //            .rd_addr(rd_ram_addr),
+    //            .rd_data(rd_ram_data),
+    //            .wr_en(wr_ram_en),
+    //            .wr_addr(wr_ram_addr),
+    //            .wr_data(wr_ram_data));
 
     pwm_driver pwm_driver0(
         .clk(clk),
