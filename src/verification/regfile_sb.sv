@@ -40,7 +40,7 @@ class regfile_sb;
                     $display("RF_SB [%0dns] Expecting a reset", $time);
                 end
                 regfile_trans::WRITE: begin
-                    $display("RF_SB [%0dns] Write to register r%0d, value %02h", $time, expected_trans.register, expected_trans.value);
+                    $display("RF_SB [%0dns] Expect write to register r%0d, value %02h", $time, expected_trans.register, expected_trans.value);
                 end
                 regfile_trans::NOP: begin
                     $display("RF_SB [%0dns] Expect no changes to register file", $time);
