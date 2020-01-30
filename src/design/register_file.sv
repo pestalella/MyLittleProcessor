@@ -27,153 +27,56 @@ module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
     input logic [DATA_BITS-1:0] wr_data
     );
 
-    wire [DATA_BITS-1:0] r0_data_out0;
-    wire [DATA_BITS-1:0] r1_data_out0;
-    wire [DATA_BITS-1:0] r2_data_out0;
-    wire [DATA_BITS-1:0] r3_data_out0;
-    wire [DATA_BITS-1:0] r4_data_out0;
-    wire [DATA_BITS-1:0] r5_data_out0;
-    wire [DATA_BITS-1:0] r6_data_out0;
-    wire [DATA_BITS-1:0] r7_data_out0;
-
-    wire [DATA_BITS-1:0] r0_data_out1;
-    wire [DATA_BITS-1:0] r1_data_out1;
-    wire [DATA_BITS-1:0] r2_data_out1;
-    wire [DATA_BITS-1:0] r3_data_out1;
-    wire [DATA_BITS-1:0] r4_data_out1;
-    wire [DATA_BITS-1:0] r5_data_out1;
-    wire [DATA_BITS-1:0] r6_data_out1;
-    wire [DATA_BITS-1:0] r7_data_out1;
-
-    wire [DATA_BITS-1:0] r0_data_in;
-    wire [DATA_BITS-1:0] r1_data_in;
-    wire [DATA_BITS-1:0] r2_data_in;
-    wire [DATA_BITS-1:0] r3_data_in;
-    wire [DATA_BITS-1:0] r4_data_in;
-    wire [DATA_BITS-1:0] r5_data_in;
-    wire [DATA_BITS-1:0] r6_data_in;
-    wire [DATA_BITS-1:0] r7_data_in;
+    wire [DATA_BITS-1:0] r_data_out0 [7:0];
+    wire [DATA_BITS-1:0] r_data_out1 [7:0];
+    wire [DATA_BITS-1:0] r_data_in [7:0];
 
     mux8to1 rd0_mux(.sel(rd0_addr),
-                    .in0(r0_data_out0),
-                    .in1(r1_data_out0),
-                    .in2(r2_data_out0),
-                    .in3(r3_data_out0),
-                    .in4(r4_data_out0),
-                    .in5(r5_data_out0),
-                    .in6(r6_data_out0),
-                    .in7(r7_data_out0),
+                    .in0(r_data_out0[0]),
+                    .in1(r_data_out0[1]),
+                    .in2(r_data_out0[2]),
+                    .in3(r_data_out0[3]),
+                    .in4(r_data_out0[4]),
+                    .in5(r_data_out0[5]),
+                    .in6(r_data_out0[6]),
+                    .in7(r_data_out0[7]),
                     .out(rd0_data));
 
-    mux8to1 rd1_mux(.sel(rd1_addr),
-                    .in0(r0_data_out1),
-                    .in1(r1_data_out1),
-                    .in2(r2_data_out1),
-                    .in3(r3_data_out1),
-                    .in4(r4_data_out1),
-                    .in5(r5_data_out1),
-                    .in6(r6_data_out1),
-                    .in7(r7_data_out1),
-                    .out(rd1_data));
+    mux8to1 rd1_mux(.sel(rd0_addr),
+                    .in0(r_data_out1[0]),
+                    .in1(r_data_out1[1]),
+                    .in2(r_data_out1[2]),
+                    .in3(r_data_out1[3]),
+                    .in4(r_data_out1[4]),
+                    .in5(r_data_out1[5]),
+                    .in6(r_data_out1[6]),
+                    .in7(r_data_out1[7]),
+                    .out(rd0_data));
 
     demux1to8 wr_demux(.sel(wr_addr),
                     .in(wr_data),
-                    .out0(r0_data_in),
-                    .out1(r1_data_in),
-                    .out2(r2_data_in),
-                    .out3(r3_data_in),
-                    .out4(r4_data_in),
-                    .out5(r5_data_in),
-                    .out6(r6_data_in),
-                    .out7(r7_data_in));
+                    .out0(r_data_in[0]),
+                    .out1(r_data_in[1]),
+                    .out2(r_data_in[2]),
+                    .out3(r_data_in[3]),
+                    .out4(r_data_in[4]),
+                    .out5(r_data_in[5]),
+                    .out6(r_data_in[6]),
+                    .out7(r_data_in[7]));
 
-    register #(.DATA_BITS(DATA_BITS)) r0(
-        .clk(clk),
-        .reset(reset),
-        .data_in(r0_data_in),
-        .data_out0(r0_data_out0),
-        .data_out1(r0_data_out1),
-        .load((wr_addr == 0) && wr_enable),
-        .out0_en((rd0_addr == 0) && rd0_enable),
-        .out1_en((rd1_addr == 0) && rd1_enable)
-        );
-
-    register #(.DATA_BITS(DATA_BITS)) r1(
-        .clk(clk),
-        .reset(reset),
-        .data_in(r1_data_in),
-        .data_out0(r1_data_out0),
-        .data_out1(r1_data_out1),
-        .load((wr_addr == 1) && wr_enable),
-        .out0_en((rd0_addr == 1) && rd0_enable),
-        .out1_en((rd1_addr == 1) && rd1_enable)
-        );
-
-    register #(.DATA_BITS(DATA_BITS)) r2(
-        .clk(clk),
-        .reset(reset),
-        .data_in(r2_data_in),
-        .data_out0(r2_data_out0),
-        .data_out1(r2_data_out1),
-        .load((wr_addr == 2) && wr_enable),
-        .out0_en((rd0_addr == 2) && rd0_enable),
-        .out1_en((rd1_addr == 2) && rd1_enable)
-        );
-
-    register #(.DATA_BITS(DATA_BITS)) r3(
-        .clk(clk),
-        .reset(reset),
-        .data_in(r3_data_in),
-        .data_out0(r3_data_out0),
-        .data_out1(r3_data_out1),
-        .load((wr_addr == 3) && wr_enable),
-        .out0_en((rd0_addr == 3) && rd0_enable),
-        .out1_en((rd1_addr == 3) && rd1_enable)
-        );
-
-    register #(.DATA_BITS(DATA_BITS)) r4(
-        .clk(clk),
-        .reset(reset),
-        .data_in(r4_data_in),
-        .data_out0(r4_data_out0),
-        .data_out1(r4_data_out1),
-        .load((wr_addr == 4) && wr_enable),
-        .out0_en((rd0_addr == 4) && rd0_enable),
-        .out1_en((rd1_addr == 4) && rd1_enable)
-        );
-
-    register #(.DATA_BITS(DATA_BITS)) r5(
-        .clk(clk),
-        .reset(reset),
-        .data_in(r5_data_in),
-        .data_out0(r5_data_out0),
-        .data_out1(r5_data_out1),
-        .load((wr_addr == 5) && wr_enable),
-        .out0_en((rd0_addr == 5) && rd0_enable),
-        .out1_en((rd1_addr == 5) && rd1_enable)
-        );
-
-    register #(.DATA_BITS(DATA_BITS)) r6(
-        .clk(clk),
-        .reset(reset),
-        .data_in(r6_data_in),
-        .data_out0(r6_data_out0),
-        .data_out1(r6_data_out1),
-        .load((wr_addr == 6) && wr_enable),
-        .out0_en((rd0_addr == 6) && rd0_enable),
-        .out1_en((rd1_addr == 6) && rd1_enable)
-        );
-
-    register #(.DATA_BITS(DATA_BITS)) r7(
-        .clk(clk),
-        .reset(reset),
-        .data_in(r7_data_in),
-        .data_out0(r7_data_out0),
-        .data_out1(r7_data_out1),
-        .load((wr_addr == 7) && wr_enable),
-        .out0_en((rd0_addr == 7) && rd0_enable),
-        .out1_en((rd1_addr == 7) && rd1_enable)
-        );
+    genvar i;
+    for (i = 0; i < 8; i++) begin : regs
+        register #(.DATA_BITS(DATA_BITS)) r(
+            .clk(clk),
+            .reset(reset),
+            .data_in(r_data_in[i]),
+            .data_out0(r_data_out0[i]),
+            .data_out1(r_data_out1[i]),
+            .load((wr_addr == i) && wr_enable),
+            .out0_en((rd0_addr == i) && rd0_enable),
+            .out1_en((rd1_addr == i) && rd1_enable)
+            );
+    end
 
 endmodule
 
