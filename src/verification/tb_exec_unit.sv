@@ -1,4 +1,3 @@
-
 `include "constants_pkg.sv"
 `include "execution_unit.sv"
 `include "isa_definition.sv"
@@ -17,7 +16,6 @@ module eu_state_change_monitor (
     output logic new_instruction);
 
     always @(state) begin
-//        $display("EU_STATE_MON [%0dns]: state changed to %s", $time, state.name);
         if (state == INSTR_FETCH_START)
             new_instruction <= 1;
         else

@@ -2,9 +2,11 @@
 `define REGFILE_TRANS_SV
 
 class regfile_trans;
-    typedef enum {RESET, WRITE, NOP} RegfileAction;
+    typedef enum {RESET, WRITE, ADD, NOP} RegfileAction;
     RegfileAction action;
-    int register;
+    int dest_reg;
+    int a_reg;
+    int b_reg;
     int value;
 endclass
 

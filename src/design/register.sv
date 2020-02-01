@@ -13,16 +13,19 @@ module register #(parameter DATA_BITS  = 8) (
     input wire out1_en,
     output wire [DATA_BITS-1:0] data_out1
     );
-    
+
     bit [DATA_BITS-1:0] bits;
     always @(negedge clk or posedge reset)
         if (reset)
             bits <= 0;
-        else if (load)
+        else if (load) begin
+            assert (^data_in !== 1'bX)
+                else $display("Assertion fail:  load=1 and data_in=%b", data_in);
             bits <= data_in;
-        
-    assign data_out0 = out0_en? bits : {DATA_BITS{1'bz}};    
-    assign data_out1 = out1_en? bits : {DATA_BITS{1'bz}};    
+        end
+
+    assign data_out0 = out0_en? bits : {DATA_BITS{1'bz}};
+    assign data_out1 = out1_en? bits : {DATA_BITS{1'bz}};
 endmodule
 
 `endif

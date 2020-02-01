@@ -10,8 +10,6 @@ class regfile_sb;
     mailbox drv2scb;
     mailbox mon2scb;
     virtual register_inspection_if vif;
-    regfile_trans expected_trans;
-
 
     const int num_regs = 1 << REGISTER_ADDRESS_BITS;
     bit [REGISTER_DATA_BITS-1:0] register_values[1 << REGISTER_ADDRESS_BITS];
@@ -28,22 +26,36 @@ class regfile_sb;
     endfunction
 
     task stop;
-        $display("RF_SB [%0dns] TEST FINISHED", $time);
+        $display("[%0dns] RF_SB TEST FINISHED", $time);
     endtask
 
     task receive_expected_instruction;
+        regfile_trans trans;
         forever begin
-            drv2scb.get(expected_trans);
+            drv2scb.get(trans);
 
-            case (expected_trans.action)
+            case (trans.action)
                 regfile_trans::RESET: begin
-                    $display("RF_SB [%0dns] Expecting a reset", $time);
+                    $display("[%0dns] RF_SB Expecting a reset", $time);
+                    for (int i = 0; i < num_regs; i++) begin
+                        register_values[i] = '0;
+                    end
                 end
                 regfile_trans::WRITE: begin
-                    $display("RF_SB [%0dns] Expect write to register r%0d, value %02h", $time, expected_trans.register, expected_trans.value);
+                    $display("[%0dns] RF_SB Expect write to register r%0d, value %02h", $time,
+                        trans.dest_reg, trans.value);
+
+                    register_values[trans.dest_reg] = trans.value;
+                end
+                regfile_trans::ADD: begin
+                    $display("[%0dns] RF_SB Expect add result write to register r%0d, value %02h", $time,
+                        trans.dest_reg,
+                        register_values[trans.a_reg] + register_values[trans.b_reg]);
+
+                    register_values[trans.dest_reg] = register_values[trans.a_reg] + register_values[trans.b_reg];
                 end
                 regfile_trans::NOP: begin
-                    $display("RF_SB [%0dns] Expect no changes to register file", $time);
+                    $display("[%0dns] RF_SB Expect no changes to register file", $time);
                 end
             endcase
         end
@@ -51,11 +63,16 @@ class regfile_sb;
 
     function bit transactions_equal(regfile_trans t1, regfile_trans t2);
         transactions_equal = t1.action == t2.action &&
-                             t1.register == t2.register &&
+                             t1.dest_reg == t2.dest_reg &&
+                             t1.a_reg == t2.a_reg &&
+                             t1.b_reg == t2.b_reg &&
                              t1.value == t2.value;
     endfunction
 
     function void check_register_values();
+        $display("  Actual: r0=%h r1=%h r2=%h r3=%h r4=%h r5=%h r6=%h r7=%h",
+            vif.r0, vif.r1, vif.r2, vif.r3, vif.r4, vif.r5, vif.r6, vif.r7);
+
         if ((register_values[0] != vif.r0) ||
             (register_values[1] != vif.r1) ||
             (register_values[2] != vif.r2) ||
@@ -65,13 +82,11 @@ class regfile_sb;
             (register_values[6] != vif.r6) ||
             (register_values[7] != vif.r7)) begin
 
-            $display("REGISTER MISMATCH");
             $display("Expected: r0=%h r1=%h r2=%h r3=%h r4=%h r5=%h r6=%h r7=%h",
                 register_values[0], register_values[1], register_values[2],
                 register_values[3], register_values[4], register_values[5],
                 register_values[6], register_values[7]);
-            $fatal(2, "  Actual: r0=%h r1=%h r2=%h r3=%h r4=%h r5=%h r6=%h r7=%h",
-                vif.r0, vif.r1, vif.r2, vif.r3, vif.r4, vif.r5, vif.r6, vif.r7);
+            $fatal(2, "REGISTER MISMATCH");
         end
     endfunction
 
@@ -79,30 +94,24 @@ class regfile_sb;
         regfile_trans trans;
         forever begin
             mon2scb.get(trans);
-
-            if (!transactions_equal(trans, expected_trans)) begin
-                $error("RF_SB [%0dns] Transaction mismatch. Expected (action:%s reg:%0d val:%02h)  Register file received (action:%s reg:%0d val:%02h)",
-                    $time, expected_trans.action.name, expected_trans.register, expected_trans.value, trans.action.name, trans.register, trans.value);
-            end else begin
-                case (trans.action)
-                    regfile_trans::RESET: begin
-                        $display("RF_SB [%0dns] Reset. All registers set to 0x00", $time);
-                        for (int i = 0; i < num_regs; i++) begin
-                            register_values[i] = '0;
-                        end
-                    end
-                    regfile_trans::WRITE: begin
-                        $display("RF_SB [%0dns] Write to register r%0d, value %02h", $time, trans.register, trans.value);
-                        register_values[trans.register] = trans.value;
-                    end
-                    regfile_trans::NOP: begin
-                        $display("RF_SB [%0dns] NOP", $time);
+            case (trans.action)
+                regfile_trans::RESET: begin
+                    $display("[%0dns] RF_SB Reset. All registers set to 0x00", $time);
+                end
+                regfile_trans::WRITE: begin
+                    $display("[%0dns] RF_SB Write to register r%0d, value %02h", $time, trans.dest_reg, trans.value);
+                end
+                regfile_trans::ADD: begin
+                    $display("[%0dns] RF_SB Write addition to register r%0d =  r%0d+r%0d (%02h)", $time, trans.dest_reg,
+                        trans.a_reg, trans.b_reg, register_values[trans.a_reg] + register_values[trans.b_reg]);
+                end
+                regfile_trans::NOP: begin
+                    $display("[%0dns] RF_SB NOP", $time);
 //                        register_values[3] = 'hFF;
-                    end
-                endcase
-                @(posedge vif.clk)
-                    check_register_values();
-            end
+                end
+            endcase
+            @(posedge vif.clk)
+                check_register_values();
         end
     endtask : receive_rf_transactions
 

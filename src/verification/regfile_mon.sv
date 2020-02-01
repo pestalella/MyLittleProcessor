@@ -17,7 +17,7 @@ class regfile_mon;
         regfile_trans trans;
         forever begin
             @(posedge vif.reset) begin
-                $display("RF_MONITOR [%0dns]: Reset triggered", $time);
+                $display("[%0dns] RF_MONITOR: Reset triggered", $time);
                 trans = new();
                 trans.action = regfile_trans::RESET;
                 mon2scb.put(trans);
@@ -29,10 +29,10 @@ class regfile_mon;
         regfile_trans trans;
         forever begin
             @(posedge vif.wr_enable) begin
-                $display("RF_MONITOR [%0dns]: Write to register r%0d, value %02h", $time, vif.wr_addr, vif.wr_data);
+                $display("[%0dns] RF_MONITOR: Write to register r%0d, value %02h", $time, vif.wr_addr, vif.wr_data);
                 trans = new();
                 trans.action = regfile_trans::WRITE;
-                trans.register = vif.wr_addr;
+                trans.dest_reg = vif.wr_addr;
                 trans.value = vif.wr_data;
                 mon2scb.put(trans);
             end
