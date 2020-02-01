@@ -55,7 +55,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     bit [REGISTER_DATA_BITS-1:0] inst_immediate, load_mem;
     bit [REGISTER_ADDRESS_BITS-1:0] reg_rd0_addr, reg_rd1_addr, reg_wr_addr;
     bit reg_rd0_en, reg_rd1_en, reg_wr_en;
-    enum bit {REGISTER_FILE, IMMEDIATE} alu_inputB_sel;
+    enum bit {IMMEDIATE, REGISTER_FILE} alu_inputB_sel;
     bit save_alu_flags;
 
     enum bit[1:0] {ALU_OUTPUT = 0,
@@ -74,8 +74,8 @@ module exec_unit #(parameter DATA_BITS = 8) (
                    .zero(alu_zero));
 
     mux2to1 alu_inputB_mux(.sel(alu_inputB_sel),
-                               .in0(regfile_rd1_data),
-                               .in1(inst_immediate),
+                               .in0(inst_immediate),
+                               .in1(regfile_rd1_data),
                                .out(alu_input_b));
 
     register_file #(.ADDR_BITS(REGISTER_ADDRESS_BITS),
@@ -128,89 +128,91 @@ module exec_unit #(parameter DATA_BITS = 8) (
     logic ex_instr_is_movir, ex_instr_is_load, ex_instr_is_store, ex_instr_is_addrr, ex_instr_is_addi,
           ex_instr_is_subrr, ex_instr_is_subi, ex_instr_is_jnzi, ex_instr_is_jzr, ex_instr_is_nop;
 
-    logic result_to_register;
+    logic instr_arithmetic;
 
-    assign instr_is_movir = (state == INSTR_FETCH_END) & ~rd_ram_data[7] & ~rd_ram_data[6] & ~rd_ram_data[5] & ~rd_ram_data[4];
-    assign instr_is_load  = (state == INSTR_FETCH_END) & ~rd_ram_data[7] & ~rd_ram_data[6] &  rd_ram_data[5] & ~rd_ram_data[4];
-    assign instr_is_store = (state == INSTR_FETCH_END) & ~rd_ram_data[7] & ~rd_ram_data[6] &  rd_ram_data[5] &  rd_ram_data[4];
-    assign instr_is_addrr = (state == INSTR_FETCH_END) & ~rd_ram_data[7] &  rd_ram_data[6] & ~rd_ram_data[5] & ~rd_ram_data[4];
-    assign instr_is_addi  = (state == INSTR_FETCH_END) & ~rd_ram_data[7] &  rd_ram_data[6] & ~rd_ram_data[5] &  rd_ram_data[4];
-    assign instr_is_subrr = (state == INSTR_FETCH_END) & ~rd_ram_data[7] &  rd_ram_data[6] &  rd_ram_data[5] & ~rd_ram_data[4];
-    assign instr_is_subi  = (state == INSTR_FETCH_END) & ~rd_ram_data[7] &  rd_ram_data[6] &  rd_ram_data[5] &  rd_ram_data[4];
-    assign instr_is_jnzi  = (state == INSTR_FETCH_END) &  rd_ram_data[7] & ~rd_ram_data[6] & ~rd_ram_data[5] & ~rd_ram_data[4];
-    assign instr_is_jzr   = (state == INSTR_FETCH_END) &  rd_ram_data[7] & ~rd_ram_data[6] & ~rd_ram_data[5] &  rd_ram_data[4];
-    assign instr_is_nop   = (state == INSTR_FETCH_END) &  rd_ram_data[7] &  rd_ram_data[6] &  rd_ram_data[5] &  rd_ram_data[4];
+    assign instr_is_movir = ~ir[15] & ~ir[14] & ~ir[13] & ~ir[12];
+    assign instr_is_load  = ~ir[15] & ~ir[14] &  ir[13] & ~ir[12];
+    assign instr_is_store = ~ir[15] & ~ir[14] &  ir[13] &  ir[12];
+    assign instr_is_addrr = ~ir[15] &  ir[14] & ~ir[13] & ~ir[12];
+    assign instr_is_addi  = ~ir[15] &  ir[14] & ~ir[13] &  ir[12];
+    assign instr_is_subrr = ~ir[15] &  ir[14] &  ir[13] & ~ir[12];
+    assign instr_is_subi  = ~ir[15] &  ir[14] &  ir[13] &  ir[12];
+    assign instr_is_jnzi  =  ir[15] & ~ir[14] & ~ir[13] & ~ir[12];
+    assign instr_is_jzr   =  ir[15] & ~ir[14] & ~ir[13] &  ir[12];
+    assign instr_is_nop   =  ir[15] &  ir[14] &  ir[13] &  ir[12];
 
-    assign ex_instr_is_movir = ((state == INSTR_FETCH_START) | (state == LOAD_STAGE)) & ~ir[15] & ~ir[14] & ~ir[13] & ~ir[12];
+    assign ex_instr_is_movir =  (state == INSTR_FETCH_START)                          & ~ir[15] & ~ir[14] & ~ir[13] & ~ir[12];
     assign ex_instr_is_load  = ((state == INSTR_FETCH_START) | (state == LOAD_STAGE)) & ~ir[15] & ~ir[14] &  ir[13] & ~ir[12];
     assign ex_instr_is_store = ((state == INSTR_FETCH_START) | (state == LOAD_STAGE)) & ~ir[15] & ~ir[14] &  ir[13] &  ir[12];
-    assign ex_instr_is_addrr =  (state == INSTR_FETCH_START) & ~ir[15] &  ir[14] & ~ir[13] & ~ir[12];
-    assign ex_instr_is_addi  =  (state == INSTR_FETCH_START) & ~ir[15] &  ir[14] & ~ir[13] &  ir[12];
-    assign ex_instr_is_subrr =  (state == INSTR_FETCH_START) & ~ir[15] &  ir[14] &  ir[13] & ~ir[12];
-    assign ex_instr_is_subi  =  (state == INSTR_FETCH_START) & ~ir[15] &  ir[14] &  ir[13] &  ir[12];
-    assign ex_instr_is_jnzi  =  (state == REGISTER_FETCH) &  ir[15] & ~ir[14] & ~ir[13] & ~ir[12];
-    assign ex_instr_is_jzr   = ((state == INSTR_FETCH_START) | (state == LOAD_STAGE)) &  ir[15] & ~ir[14] & ~ir[13] &  ir[12];
-    assign ex_instr_is_nop   = ((state == INSTR_FETCH_START) | (state == LOAD_STAGE)) &  ir[15] &  ir[14] &  ir[13] &  ir[12];
+    assign ex_instr_is_addrr =  (state == INSTR_FETCH_START)                          & ~ir[15] &  ir[14] & ~ir[13] & ~ir[12];
+    assign ex_instr_is_addi  =  (state == INSTR_FETCH_START)                          & ~ir[15] &  ir[14] & ~ir[13] &  ir[12];
+    assign ex_instr_is_subrr =  (state == INSTR_FETCH_START)                          & ~ir[15] &  ir[14] &  ir[13] & ~ir[12];
+    assign ex_instr_is_subi  =  (state == INSTR_FETCH_START)                          & ~ir[15] &  ir[14] &  ir[13] &  ir[12];
+    assign ex_instr_is_jnzi  =  (state == REGISTER_FETCH)                             &  ir[15] & ~ir[14] & ~ir[13] & ~ir[12];
+    assign ex_instr_is_jzr   =  (state == INSTR_FETCH_START)                          &  ir[15] & ~ir[14] & ~ir[13] &  ir[12];
+    assign ex_instr_is_nop   =  (state == INSTR_FETCH_START)                          &  ir[15] &  ir[14] &  ir[13] &  ir[12];
 
-    assign result_to_register = instr_is_movir | instr_is_load | instr_is_addrr | instr_is_addi | instr_is_subrr | instr_is_subi;
-    assign ex_result_to_register = ex_instr_is_movir | ex_instr_is_load |
-                                   ex_instr_is_addrr | ex_instr_is_addi |
-                                   ex_instr_is_subrr | ex_instr_is_subi;
+    assign rd_mem_en = (state == INSTR_FETCH_END) | (state == REGISTER_FETCH) | ex_instr_is_load;
 
-    assign reg_wr_en = ex_result_to_register;
+    assign reg_rd0_en = instr_is_store |
+                        instr_is_addrr | instr_is_addi |
+                        instr_is_subrr | instr_is_subi;
+    assign reg_rd1_en = instr_is_addrr | instr_is_subrr;
+    assign subtract = ex_instr_is_subrr | ex_instr_is_subi;
+
+    assign instr_arithmetic = instr_is_addrr | instr_is_addi |
+                              instr_is_subrr | instr_is_subi;
+    assign reg_wr_en = ((state == EXECUTE) && (instr_is_movir | instr_is_load)) |
+                       ((state == REGISTER_WB) && (instr_is_addrr | instr_is_addi |
+                                                   instr_is_subrr | instr_is_subi));
 
     function void request_register_reads;
         case (ir[15:12])
             MOVIR: begin
                 reg_wr_addr    <= ir[10:8];
+                inst_immediate <= rd_ram_data[7:0];
+                reg_input_sel  <= INST_IMMEDIATE;
             end
             LOAD: begin
-                reg_wr_addr   <= ir[10:8];
+                reg_wr_addr    <= ir[10:8];
             end
             STORE: begin
-                reg_rd0_addr <= ir[10:8];
-                reg_rd0_en   <= 1;
+                reg_rd0_addr   <= ir[10:8];
             end
             ADDRR: begin
-                reg_rd0_addr <= rd_ram_data[6:4];
-                reg_rd1_addr <= rd_ram_data[2:0];
+                reg_rd0_addr   <= rd_ram_data[6:4];
+                reg_rd1_addr   <= rd_ram_data[2:0];
                 reg_wr_addr    <= ir[10:8];
-                reg_rd0_en     <= 1;
-                reg_rd1_en     <= 1;
                 // Enable input to the ALU from the register file
                 alu_inputB_sel <= REGISTER_FILE;
                 // Addition op, therefore subtract=0
-                subtract       <= 0;
+//                subtract       <= 0;
             end
              ADDI: begin
                 reg_rd0_addr   <= ir[10:8];
                 reg_wr_addr    <= ir[10:8];
-                reg_rd0_en     <= 1;
                 inst_immediate <= rd_ram_data[7:0];
                 // Enable input to the ALU from the constant in the instruction
                 alu_inputB_sel <= IMMEDIATE;
                 // Addition op, therefore subtract=0
-                subtract       <= 0;
+//                subtract       <= 0;
             end
             SUBRR: begin
-                reg_rd0_addr  <= rd_ram_data[6:4];
-                reg_rd1_addr  <= rd_ram_data[2:0];
-                reg_wr_addr   <= ir[10:8];
-                reg_rd0_en    <= 1;
-                reg_rd1_en    <= 1;
+                reg_rd0_addr   <= rd_ram_data[6:4];
+                reg_rd1_addr   <= rd_ram_data[2:0];
+                reg_wr_addr    <= ir[10:8];
                 // Enable input to the ALU from the register file
                 alu_inputB_sel <= REGISTER_FILE;
                 // Subtract op, therefore subtract=1
-                subtract <= 1;
+//                subtract <= 1;
             end
              SUBI: begin
                 reg_rd0_addr   <= ir[10:8];
                 reg_wr_addr    <= ir[10:8];
-                reg_rd0_en     <= 1;
                 inst_immediate <= rd_ram_data[7:0];
                 alu_inputB_sel <= IMMEDIATE;
                 // Subtract op, therefore subtract=1
-                subtract <= 1;
+//                subtract <= 1;
             end
              JNZI: begin
             end
@@ -224,21 +226,15 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     function void execute_instruction;
         reg_input_sel <= ALU_OUTPUT;
-        reg_rd0_en    <= 0;
-        reg_rd1_en    <= 0;
-        rd_mem_en     <= 0;
 
         case (ir[15:12])
             MOVIR: begin
                 $display("mov r%0d #%h", ir[10:8], ir[7:0]);
-                inst_immediate <= ir[7:0];
-                reg_input_sel  <= INST_IMMEDIATE;
             end
             LOAD: begin
                 $display("load r%0d @%h", ir[10:8], ir[7:0]);
                 // Prepare next transaction
                 rd_mem_addr   <= ir[7:0];
-                rd_mem_en     <= 1;
                 reg_input_sel <= MEM_LOAD;
             end
             STORE: begin
@@ -248,43 +244,32 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 wr_mem_data           <= regfile_rd0_data;
                 mem_write_in_progress <= 1;
                 wr_mem_en             <= 1;
-                rd_mem_en             <= 0;
             end
             ADDRR: begin
                 $display("add r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
                 // Enable writes to the register file from the ALU
                 reg_input_sel  <= ALU_OUTPUT;
-                // Addition op, therefore subtract=0
-                subtract       <= 0;
             end
              ADDI: begin
                 $display("add r%0d #%h", ir[10:8], ir[7:0]);
                 // Enable writes to the register file from the ALU
                 reg_input_sel  <= ALU_OUTPUT;
-                reg_wr_en      <= 1;
-                // Addition op, therefore subtract=0
-                subtract       <= 0;
             end
             SUBRR: begin
                 $display("sub r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
                 // Enable writes to the register file from the ALU
                 reg_input_sel <= ALU_OUTPUT;
-                // Addition op, therefore subtract=1
-                subtract      <= 1;
             end
              SUBI: begin
                 $display("sub r%0d #%h", ir[10:8], ir[7:0]);
                 // Enable writes to the register file from the ALU
                 reg_input_sel  <= ALU_OUTPUT;
-                // Subtraction op, therefore subtract=1
-                subtract       <= 1;
             end
              JNZI: begin
                 $display("jnz #%0d", ir[7:0]);
             end
               JZR: begin
                 $display("jz reg");
-                pc_offset_sel <= NEXT_INSTRUCTION;
             end
               NOP: begin
                 $display("nop");
@@ -296,26 +281,22 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     always @(posedge clk, posedge reset) begin
         if (reset) begin
-            pc_offset_sel     <= RESET;
-            rd_mem_addr       <= 0;
-            wr_mem_addr       <= 0;
-            rd_mem_en         <= 0;
-            wr_mem_en         <= 0;
+            pc_offset_sel         <= RESET;
+            rd_mem_addr           <= 0;
+            wr_mem_addr           <= 0;
+            wr_mem_en             <= 0;
             mem_write_in_progress <= 0;
-            reg_rd0_addr      <= 0;
-            reg_rd1_addr      <= 0;
-            reg_wr_addr       <= 0;
-            subtract          <= 0;
-            carry_flag        <= 0;
-            zero_flag         <= 0;
-            save_alu_flags    <= 0;
-            reg_input_sel     <= ALU_OUTPUT;
-            alu_inputB_sel    <= REGISTER_FILE;
-            reg_rd0_en        <= 0;
-            reg_rd1_en        <= 0;
-            state             <= IDLE;
-            current_inst      <= NOP;
-            jump_dest         <= 0;
+            reg_rd0_addr          <= '0;
+            reg_rd1_addr          <= '0;
+            reg_wr_addr           <= '0;
+            carry_flag            <= 0;
+            zero_flag             <= 0;
+            save_alu_flags        <= 0;
+            reg_input_sel         <= ALU_OUTPUT;
+            alu_inputB_sel        <= REGISTER_FILE;
+            state                 <= IDLE;
+            current_inst          <= NOP;
+            jump_dest             <= 0;
         end else begin
             case (state)
                 INSTR_FETCH_START: begin
@@ -324,7 +305,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     carry_flag  <= save_alu_flags ? alu_carry : carry_flag;
                     // Prepare read transaction
                     rd_mem_addr <= pc;
-                    rd_mem_en   <= 1;
                     wr_mem_en   <= 0;
                     state       <= INSTR_FETCH_END;
                 end
@@ -334,7 +314,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     current_inst <= OpCode'(rd_ram_data[7:4]);
                     // And prepare next transaction
                     rd_mem_addr <= pc + 1;
-                    rd_mem_en   <= 1;
 
                     state       <= REGISTER_FETCH;
                 end
@@ -347,7 +326,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     jump_dest <= rd_ram_data;
                     pc_offset_sel <= (ex_instr_is_jnzi & ~zero_flag) ? JUMP_TARGET : NEXT_INSTRUCTION;
 
-                    rd_mem_en    <= 0;
                     wr_mem_en    <= 0;
 
                     request_register_reads();
@@ -368,13 +346,17 @@ module exec_unit #(parameter DATA_BITS = 8) (
                         state <= LOAD_STAGE;
                     else if (ir[15:12] == STORE)
                         state <= STORE_STAGE;
+                    else if (instr_arithmetic)
+                        state <= REGISTER_WB;
                     else
                         state <= INSTR_FETCH_START;
+                end
+                REGISTER_WB: begin
+                    state     <= INSTR_FETCH_START;
                 end
                 LOAD_STAGE: begin
                     load_mem  <= rd_ram_data;
                     wr_mem_en <= 0;
-                    rd_mem_en <= 0;
                     state     <= INSTR_FETCH_START;
                 end
                 STORE_STAGE: begin
