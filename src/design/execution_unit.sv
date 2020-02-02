@@ -34,18 +34,18 @@ module exec_unit #(parameter DATA_BITS = 8) (
     logic [MEMORY_DATA_BITS-1:0] rd_mem_data;
     logic [MEMORY_ADDRESS_BITS-1:0] rd_mem_addr;
 
-    logic wr_mem_en;
+    logic mem_wr_en;
     logic [MEMORY_DATA_BITS-1:0] wr_mem_data;
     logic [MEMORY_ADDRESS_BITS-1:0] wr_mem_addr;
 
-    bit mem_write_in_progress;
+    bit mem_wr_in_progress;
     ExecutionStage state;
 
     assign rd_ram_en = rd_mem_en;
-    assign wr_ram_en = wr_mem_en;
+    assign wr_ram_en = mem_wr_en;
     assign rd_ram_addr = rd_mem_addr;
     assign wr_ram_addr = wr_mem_addr;
-    assign wr_ram_data = mem_write_in_progress ? wr_mem_data : {DATA_BITS{1'bz}}; // To drive the inout net
+    assign wr_ram_data = mem_wr_in_progress ? wr_mem_data : {DATA_BITS{1'bz}}; // To drive the inout net
 
     logic subtract;
     logic alu_carry;
@@ -58,10 +58,11 @@ module exec_unit #(parameter DATA_BITS = 8) (
     enum bit {IMMEDIATE, REGISTER_FILE} alu_inputB_sel;
     bit save_alu_flags;
 
-    enum bit[1:0] {ALU_OUTPUT = 0,
-                   INST_IMMEDIATE = 1,
-                   MEM_LOAD = 2,
-                   REG_FILE_RD0 = 3} reg_input_sel;
+    typedef enum bit[1:0] {ALU_OUTPUT = 0,
+                           INST_IMMEDIATE = 1,
+                           MEM_LOAD = 2,
+                           REG_FILE_RD0 = 3} RegisterInputSelection;
+    RegisterInputSelection reg_input_sel;
 
     alu #(.DATA_BITS(REGISTER_DATA_BITS))
         arith_unit(.clk(clk),
@@ -158,7 +159,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                         instr_is_addrr | instr_is_addi |
                         instr_is_subrr | instr_is_subi;
     assign reg_rd1_en = instr_is_addrr | instr_is_subrr;
-    assign subtract = ex_instr_is_subrr | ex_instr_is_subi;
+    assign subtract = (state == EXECUTE) && (instr_is_subrr | instr_is_subi);
 
     assign instr_arithmetic = instr_is_addrr | instr_is_addi |
                               instr_is_subrr | instr_is_subi;
@@ -166,12 +167,16 @@ module exec_unit #(parameter DATA_BITS = 8) (
                        ((state == REGISTER_WB) && (instr_is_addrr | instr_is_addi |
                                                    instr_is_subrr | instr_is_subi));
 
+    assign reg_input_sel = (instr_is_load  && (state == EXECUTE)) ? MEM_LOAD :
+                          ((instr_is_movir && (state == EXECUTE)) ? INST_IMMEDIATE :
+                                                                    ALU_OUTPUT);
+    assign alu_inputB_sel = (instr_is_addi || instr_is_subi ) && (state == EXECUTE) ? IMMEDIATE : REGISTER_FILE;
+
     function void request_register_reads;
         case (ir[15:12])
             MOVIR: begin
                 reg_wr_addr    <= ir[10:8];
                 inst_immediate <= rd_ram_data[7:0];
-                reg_input_sel  <= INST_IMMEDIATE;
             end
             LOAD: begin
                 reg_wr_addr    <= ir[10:8];
@@ -183,36 +188,21 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 reg_rd0_addr   <= rd_ram_data[6:4];
                 reg_rd1_addr   <= rd_ram_data[2:0];
                 reg_wr_addr    <= ir[10:8];
-                // Enable input to the ALU from the register file
-                alu_inputB_sel <= REGISTER_FILE;
-                // Addition op, therefore subtract=0
-//                subtract       <= 0;
             end
              ADDI: begin
                 reg_rd0_addr   <= ir[10:8];
                 reg_wr_addr    <= ir[10:8];
                 inst_immediate <= rd_ram_data[7:0];
-                // Enable input to the ALU from the constant in the instruction
-                alu_inputB_sel <= IMMEDIATE;
-                // Addition op, therefore subtract=0
-//                subtract       <= 0;
             end
             SUBRR: begin
                 reg_rd0_addr   <= rd_ram_data[6:4];
                 reg_rd1_addr   <= rd_ram_data[2:0];
                 reg_wr_addr    <= ir[10:8];
-                // Enable input to the ALU from the register file
-                alu_inputB_sel <= REGISTER_FILE;
-                // Subtract op, therefore subtract=1
-//                subtract <= 1;
             end
              SUBI: begin
                 reg_rd0_addr   <= ir[10:8];
                 reg_wr_addr    <= ir[10:8];
                 inst_immediate <= rd_ram_data[7:0];
-                alu_inputB_sel <= IMMEDIATE;
-                // Subtract op, therefore subtract=1
-//                subtract <= 1;
             end
              JNZI: begin
             end
@@ -225,7 +215,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
     endfunction
 
     function void execute_instruction;
-        reg_input_sel <= ALU_OUTPUT;
 
         case (ir[15:12])
             MOVIR: begin
@@ -235,35 +224,30 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 $display("load r%0d @%h", ir[10:8], ir[7:0]);
                 // Prepare next transaction
                 rd_mem_addr   <= ir[7:0];
-                reg_input_sel <= MEM_LOAD;
             end
             STORE: begin
                 $display("store @%h r%0d", ir[7:0], ir[10:8]);
                 // Launch memory write
-                wr_mem_addr           <= ir[7:0];
-                wr_mem_data           <= regfile_rd0_data;
-                mem_write_in_progress <= 1;
-                wr_mem_en             <= 1;
+                wr_mem_addr        <= ir[7:0];
+                wr_mem_data        <= regfile_rd0_data;
+                mem_wr_in_progress <= 1;
+                mem_wr_en          <= 1;
             end
             ADDRR: begin
                 $display("add r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
                 // Enable writes to the register file from the ALU
-                reg_input_sel  <= ALU_OUTPUT;
             end
              ADDI: begin
                 $display("add r%0d #%h", ir[10:8], ir[7:0]);
                 // Enable writes to the register file from the ALU
-                reg_input_sel  <= ALU_OUTPUT;
             end
             SUBRR: begin
                 $display("sub r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
                 // Enable writes to the register file from the ALU
-                reg_input_sel <= ALU_OUTPUT;
             end
              SUBI: begin
                 $display("sub r%0d #%h", ir[10:8], ir[7:0]);
                 // Enable writes to the register file from the ALU
-                reg_input_sel  <= ALU_OUTPUT;
             end
              JNZI: begin
                 $display("jnz #%0d", ir[7:0]);
@@ -281,22 +265,20 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     always @(posedge clk, posedge reset) begin
         if (reset) begin
-            pc_offset_sel         <= RESET;
-            rd_mem_addr           <= 0;
-            wr_mem_addr           <= 0;
-            wr_mem_en             <= 0;
-            mem_write_in_progress <= 0;
-            reg_rd0_addr          <= '0;
-            reg_rd1_addr          <= '0;
-            reg_wr_addr           <= '0;
-            carry_flag            <= 0;
-            zero_flag             <= 0;
-            save_alu_flags        <= 0;
-            reg_input_sel         <= ALU_OUTPUT;
-            alu_inputB_sel        <= REGISTER_FILE;
-            state                 <= IDLE;
-            current_inst          <= NOP;
-            jump_dest             <= 0;
+            pc_offset_sel      <= RESET;
+            rd_mem_addr        <= '0;
+            wr_mem_addr        <= '0;
+            mem_wr_en          <= 0;
+            mem_wr_in_progress <= 0;
+            reg_rd0_addr       <= '0;
+            reg_rd1_addr       <= '0;
+            reg_wr_addr        <= '0;
+            carry_flag         <= 0;
+            zero_flag          <= 0;
+            save_alu_flags     <= 0;
+            state              <= IDLE;
+            current_inst       <= NOP;
+            jump_dest          <= 0;
         end else begin
             case (state)
                 INSTR_FETCH_START: begin
@@ -305,7 +287,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     carry_flag  <= save_alu_flags ? alu_carry : carry_flag;
                     // Prepare read transaction
                     rd_mem_addr <= pc;
-                    wr_mem_en   <= 0;
+                    mem_wr_en   <= 0;
                     state       <= INSTR_FETCH_END;
                 end
                 INSTR_FETCH_END: begin
@@ -326,7 +308,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     jump_dest <= rd_ram_data;
                     pc_offset_sel <= (ex_instr_is_jnzi & ~zero_flag) ? JUMP_TARGET : NEXT_INSTRUCTION;
 
-                    wr_mem_en    <= 0;
+                    mem_wr_en    <= 0;
 
                     request_register_reads();
 
@@ -356,12 +338,12 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 end
                 LOAD_STAGE: begin
                     load_mem  <= rd_ram_data;
-                    wr_mem_en <= 0;
+                    mem_wr_en <= 0;
                     state     <= INSTR_FETCH_START;
                 end
                 STORE_STAGE: begin
-                    wr_mem_en             <= 0;
-                    mem_write_in_progress <= 0;
+                    mem_wr_en             <= 0;
+                    mem_wr_in_progress <= 0;
                     state                 <= INSTR_FETCH_START;
                 end
                 IDLE: begin
