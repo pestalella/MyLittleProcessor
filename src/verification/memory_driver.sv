@@ -14,8 +14,7 @@ class Instruction;
     rand bit [3:0] b_reg;
     rand bit [7:0] value;
 
-    constraint limited_isa  {opcode inside {MOVIR, JNZI, ADDRR};};
-//    constraint limited_isa  {opcode inside {ADDRR};};
+    constraint limited_isa  {opcode inside {MOVIR, JNZI, ADDRR, SUBRR};};
     constraint limited_regs {dest_reg inside {[0:7]};
                                 a_reg inside {[0:7]};
                                 b_reg inside {[0:7]};};
@@ -35,13 +34,13 @@ class Instruction;
                 return {opcode, dest_reg, a_reg, b_reg};
             end
              ADDI: begin
-                return '0;
+                return {opcode, dest_reg, value};
             end
             SUBRR: begin
-                return '0;
+                return {opcode, dest_reg, a_reg, b_reg};
             end
              SUBI: begin
-                return '0;
+                return {opcode, dest_reg, value};
             end
              JNZI: begin
                 return {opcode, 4'b0, value};
@@ -50,7 +49,7 @@ class Instruction;
                 return '0;
             end
               NOP: begin
-                return '0;
+                return {opcode, 4'b0, 8'b0};
               end
         endcase
 
@@ -107,6 +106,7 @@ class memory_driver;
         this.drv2scb = drv2scb;
         this.test_finished = 0;
         this.random_instruction = new();
+        this.random_instruction.srandom(1);
     endfunction
 
     function generate_instruction;
@@ -118,7 +118,7 @@ class memory_driver;
             random_instruction.randomize();
         end
         injected_instruction = random_instruction.encoded();
-        $display("[%0dns] MEM_DRV instr_generator: new instruction %s", $time, random_instruction.toString());
+        $display("[%0dns] MEM_DRV instr_generator: new instruction [%s]", $time, random_instruction.toString());
     endfunction
 
     task inject_instructions;
@@ -148,8 +148,10 @@ class memory_driver;
         end else begin
             generate_instruction();
             trans = new();
-            trans.action = random_instruction.opcode == MOVIR ?
-                regfile_trans::WRITE : (random_instruction.opcode == ADDRR ? regfile_trans::ADD : regfile_trans::NOP);
+            trans.action = random_instruction.opcode == MOVIR ? regfile_trans::WRITE :
+                          (random_instruction.opcode == ADDRR ? regfile_trans::ADD :
+                          (random_instruction.opcode == SUBRR ? regfile_trans::SUB :
+                          regfile_trans::NOP));
             trans.dest_reg = random_instruction.dest_reg;
             trans.a_reg = random_instruction.a_reg;
             trans.b_reg = random_instruction.b_reg;

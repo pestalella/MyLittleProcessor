@@ -54,6 +54,13 @@ class regfile_sb;
 
                     register_values[trans.dest_reg] = register_values[trans.a_reg] + register_values[trans.b_reg];
                 end
+                regfile_trans::SUB: begin
+                    $display("[%0dns] RF_SB Expect sub result write to register r%0d, value %02h", $time,
+                        trans.dest_reg,
+                        register_values[trans.a_reg] - register_values[trans.b_reg]);
+
+                    register_values[trans.dest_reg] = register_values[trans.a_reg] - register_values[trans.b_reg];
+                end
                 regfile_trans::NOP: begin
                     $display("[%0dns] RF_SB Expect no changes to register file", $time);
                 end
@@ -104,6 +111,10 @@ class regfile_sb;
                 regfile_trans::ADD: begin
                     $display("[%0dns] RF_SB Write addition to register r%0d =  r%0d+r%0d (%02h)", $time, trans.dest_reg,
                         trans.a_reg, trans.b_reg, register_values[trans.a_reg] + register_values[trans.b_reg]);
+                end
+                regfile_trans::SUB: begin
+                    $display("[%0dns] RF_SB Write subtraction to register r%0d =  r%0d-r%0d (%02h)", $time, trans.dest_reg,
+                        trans.a_reg, trans.b_reg, register_values[trans.a_reg] - register_values[trans.b_reg]);
                 end
                 regfile_trans::NOP: begin
                     $display("[%0dns] RF_SB NOP", $time);
