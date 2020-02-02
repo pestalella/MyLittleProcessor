@@ -33,19 +33,18 @@ mux2to1 counter_input_mux(
 
 always_ff @(posedge clk or posedge reset) begin
     if (reset) begin
+        pwm_clk_counter   <= '0;
         counter_input_sel <= RESET;
-        pwm_clk_counter <= '0;
-        cutoff <= 'h7f;
+        cutoff            <= 'h7f;
     end else if (set_cutoff_en) begin
         counter_input_sel <= RESET;
-        cutoff <= cutoff_value;
+        cutoff            <= cutoff_value;
     end else begin
         counter_input_sel <= INCREASE;
-        pwm_clk_counter <= (pwm_clk_counter > PWM_PERIOD-1)? 0 : pwm_clk_counter + 1;
+        pwm_clk_counter   <= (pwm_clk_counter > PWM_PERIOD-1)? 0 : pwm_clk_counter + 1;
     end
     clk_pwm <= pwm_clk_counter > PWM_HALF_PERIOD? 1 : 0;
 end
-
 
 always_ff @(posedge clk_pwm) begin
     if (counter < cutoff) begin
