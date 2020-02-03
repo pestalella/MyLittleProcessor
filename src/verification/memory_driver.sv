@@ -94,14 +94,17 @@ endclass
 class memory_driver;
     bit test_finished;
     int counter = 0;
+    bit arith_zero;
 
     Instruction random_instruction;
     bit [15:0] injected_instruction;
+    bit [7:0] jump_dest;
+    bit [7:0] no_jump_dest;
 
     virtual memory_if vif;
-    mailbox drv2scb;
+    mailbox #(regfile_trans) drv2scb;
 
-    function new (virtual memory_if.mem_mon vif, mailbox drv2scb);
+    function new (virtual memory_if.mem_mon vif, mailbox #(regfile_trans) drv2scb);
         this.vif = vif;
         this.drv2scb = drv2scb;
         this.test_finished = 0;
@@ -122,18 +125,37 @@ class memory_driver;
     endfunction
 
     task inject_instructions;
+        regfile_trans trans;
         bit instr_begin = 0;
+        bit expect_jump = 0;
 
         forever begin
             @(vif.rd_addr or vif.rd_en) begin
-                // $display("MEM_DRV [%0dns] rd_en:%0d addr:%02h  injected_byte:%02h", $time,
-                //     vif.rd_en, vif.rd_addr,
-                //     (vif.rd_en? (vif.rd_addr[0] ? injected_instruction[7:0] : injected_instruction[15:8]) :
-                //                 vif.rd_data));
+                if (test_finished) begin
+                    vif.rd_data <= {NOP, 4'b0000};
+                end else begin
+                    if (expect_jump) begin
+                        trans = new();
+                        trans.action = regfile_trans::CHECK_JUMP;
+                        trans.jump_dest = vif.rd_addr;
+                        drv2scb.put(trans); 
+                    end
 
-                vif.rd_data <= test_finished? {NOP, 4'b0000} :
-                              (vif.rd_en? (instr_begin ? injected_instruction[7:0] : injected_instruction[15:8]) :
-                                           vif.rd_data);
+                    vif.rd_data <= vif.rd_en? (instr_begin ? injected_instruction[7:0] : 
+                                                             injected_instruction[15:8]) :
+                                               vif.rd_data;
+
+                    if (~instr_begin & random_instruction.opcode == JNZI) begin
+                        trans = new();
+                        trans.action = regfile_trans::JUMP;
+                        trans.jump_dest = random_instruction.value;
+                        trans.next_instr_address = vif.rd_addr + 1;
+                        drv2scb.put(trans); 
+                        expect_jump = 1;
+                    end else begin
+                        expect_jump = 0;
+                    end
+                end
                 instr_begin = vif.rd_en? ~instr_begin : instr_begin;
             end
         end

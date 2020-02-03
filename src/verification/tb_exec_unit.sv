@@ -125,7 +125,7 @@ module tb_exec_unit ();
         #5 clk = ~clk;
     end
 
-    task reset_dut(mailbox drv2scb);
+    task reset_dut(mailbox #(regfile_trans) drv2scb);
         regfile_trans trans;
         trans = new();
         trans.action = regfile_trans::RESET;
@@ -147,7 +147,7 @@ module tb_exec_unit ();
 
     initial begin
         mailbox mon2scb;
-        mailbox drv2scb;
+        mailbox #(regfile_trans) drv2scb;
         regfile_mon rf_mon;
 
         mon2scb = new();
