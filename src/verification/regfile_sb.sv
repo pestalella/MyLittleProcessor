@@ -38,7 +38,7 @@ class regfile_sb;
 
     task receive_expected_instruction;
         regfile_trans trans;
-        bit [7:0] add_result;
+        bit [7:0] arith_result;
 
         forever begin
             drv2scb.get(trans);
@@ -60,16 +60,18 @@ class regfile_sb;
                     $display("[%0dns] RF_SB Expect add result write to register r%0d, value %02h", $time,
                         trans.dest_reg,
                         register_values[trans.a_reg] + register_values[trans.b_reg]);
-                    add_result =  register_values[trans.a_reg] + register_values[trans.b_reg];
-                    this.alu_zero = (add_result == '0);
-                    register_values[trans.dest_reg] = add_result;
+                    arith_result =  register_values[trans.a_reg] + register_values[trans.b_reg];
+                    this.alu_zero = (arith_result == '0);
+                    register_values[trans.dest_reg] = arith_result;
                 end
                 regfile_trans::SUB: begin
                     $display("[%0dns] RF_SB Expect sub result write to register r%0d, value %02h", $time,
                         trans.dest_reg,
                         register_values[trans.a_reg] - register_values[trans.b_reg]);
 
-                    register_values[trans.dest_reg] = register_values[trans.a_reg] - register_values[trans.b_reg];
+                    arith_result =  register_values[trans.a_reg] - register_values[trans.b_reg];
+                    this.alu_zero = (arith_result == '0);
+                    register_values[trans.dest_reg] = arith_result;
                 end
                 regfile_trans::NOP: begin
                     $display("[%0dns] RF_SB Expect no changes to register file", $time);
@@ -77,7 +79,7 @@ class regfile_sb;
                 regfile_trans::JUMP: begin
                     if (this.alu_zero) begin
                         this.jump_dest = trans.next_instr_address;
-                        $display("[%0dns] RF_SB Expect jump not taken. Next PC should be @%02h", 
+                        $display("[%0dns] RF_SB Expect jump not taken. Next PC should be @%02h",
                             $time, this.jump_dest);
                     end else begin
                         this.jump_dest = trans.jump_dest;
@@ -85,11 +87,12 @@ class regfile_sb;
                     end
                 end
                 regfile_trans::CHECK_JUMP: begin
+                    $display("[%0dns] Checking jump behavior:", $time);
                     if (this.jump_dest != trans.jump_dest)
-                        $fatal(2, "[%0dns] RF_SB Wrong PC after JNZ instruction. PC:@%02h Expected:@%02h",
+                        $fatal(2, "[%0dns]     Wrong PC after JNZ instruction. PC:@%02h Expected:@%02h",
                             $time, trans.jump_dest, this.jump_dest);
                     else
-                        $display("[%0dns] Correct jump behavior", $time);
+                        $display("[%0dns]     Correct jump behavior", $time);
                 end
             endcase
         end

@@ -50,6 +50,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     logic subtract;
     logic alu_carry;
     logic alu_zero;
+    wire alu_zero_wire;
     wire [REGISTER_DATA_BITS-1:0] alu_input_b, alu_output,
                                   register_file_input, regfile_rd0_data, regfile_rd1_data;
     bit [REGISTER_DATA_BITS-1:0] inst_immediate, load_mem;
@@ -72,7 +73,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                    .cin(subtract),
                    .result(alu_output),
                    .cout(alu_carry),
-                   .zero(alu_zero));
+                   .zero(alu_zero_wire));
 
     mux2to1 alu_inputB_mux(.sel(alu_inputB_sel),
                                .in0(inst_immediate),
@@ -171,6 +172,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                           ((instr_is_movir && (state == EXECUTE)) ? INST_IMMEDIATE :
                                                                     ALU_OUTPUT);
     assign alu_inputB_sel = (instr_is_addi || instr_is_subi ) && (state == EXECUTE) ? IMMEDIATE : REGISTER_FILE;
+    assign alu_zero = (instr_arithmetic && (state == REGISTER_WB)) ? alu_zero_wire : alu_zero;
 
     function void request_register_reads;
         case (ir[15:12])

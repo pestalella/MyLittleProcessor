@@ -15,7 +15,8 @@ module alu  #(parameter DATA_BITS  = 8) (
     );
 
     logic [DATA_BITS:0] reg_result;
-    wire reg_zero;
+    logic reg_zero;
+
 
     // If cin==1, it means the request is to subtract instead of add
     assign reg_result = cin? (a + ~b + cin) : (a + b);

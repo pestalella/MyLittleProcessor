@@ -3,7 +3,7 @@
 <!--                                                         -->
 <!-- Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.   -->
 
-<Project Version="7" Minor="44" Path="C:/Users/Pau/source/repos/MyLittleProcessor/MyLittleProcessor.xpr">
+<Project Version="7" Minor="44" Path="C:/Users/Pau/Source/Repos/MyLittleProcessor/MyLittleProcessor.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="a66b6f09e65444faa0ce7d72cbdc660d"/>
@@ -30,7 +30,7 @@
     <Option Name="IPUserFilesDir" Val="$PIPUSERFILESDIR"/>
     <Option Name="IPStaticSourceDir" Val="$PIPUSERFILESDIR/ipstatic"/>
     <Option Name="EnableBDX" Val="FALSE"/>
-    <Option Name="WTXSimLaunchSim" Val="860"/>
+    <Option Name="WTXSimLaunchSim" Val="959"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
@@ -164,14 +164,14 @@
     </FileSet>
     <FileSet Name="constrs_1" Type="Constrs" RelSrcDir="$PSRCDIR/constrs_1">
       <Filter Type="Constrs"/>
-      <File Path="$PSRCDIR/constrs_1/new/mylittleprocessor.xdc">
+      <File Path="$PSRCDIR/constrs_1/new/mylittleprocessor_constraints.xdc">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
         </FileInfo>
       </File>
       <Config>
-        <Option Name="TargetConstrsFile" Val="$PSRCDIR/constrs_1/new/mylittleprocessor.xdc"/>
+        <Option Name="TargetConstrsFile" Val="$PSRCDIR/constrs_1/new/mylittleprocessor_constraints.xdc"/>
         <Option Name="ConstrsType" Val="XDC"/>
       </Config>
     </FileSet>
@@ -227,16 +227,6 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/tb_exec_unit_behav1.wcfg">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/tb_top_behav.wcfg">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/tb_top_behav1.wcfg">
         <FileInfo>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
@@ -303,6 +293,7 @@
         <Option Name="XSimWcfgFile" Val="$PPRDIR/tb_exec_unit_behav1.wcfg"/>
         <Option Name="XSimWcfgFile" Val="$PPRDIR/tb_top_behav.wcfg"/>
         <Option Name="XSimWcfgFile" Val="$PPRDIR/tb_top_behav1.wcfg"/>
+        <Option Name="XSimWcfgFile" Val="$PPRDIR/tb_exec_unit_behav1.wcfg"/>
         <Option Name="xsim.compile.xvlog.more_options" Val="-d VIDADO_SIMULATION"/>
         <Option Name="xsim.simulate.runtime" Val="500ns"/>
         <Option Name="xsim.simulate.xsim.more_options" Val="-testplusarg &quot;memory_file=pwm.bin&quot;"/>
