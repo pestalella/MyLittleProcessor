@@ -33,7 +33,7 @@ class regfile_sb;
     endfunction
 
     task stop;
-        $display("[%0dns] RF_SB TEST FINISHED", $time);
+        $display("[%6dns] RF_SB TEST FINISHED", $time);
     endtask
 
     task receive_expected_instruction;
@@ -45,19 +45,19 @@ class regfile_sb;
 
             case (trans.action)
                 regfile_trans::RESET: begin
-                    $display("[%0dns] RF_SB Expecting a reset", $time);
+                    $display("[%6dns] RF_SB Expecting a reset", $time);
                     for (int i = 0; i < num_regs; i++) begin
                         register_values[i] = '0;
                     end
                 end
                 regfile_trans::WRITE: begin
-                    $display("[%0dns] RF_SB Expect write to register r%0d, value %02h", $time,
+                    $display("[%6dns] RF_SB Expect write to register r%0d, value %02h", $time,
                         trans.dest_reg, trans.value);
 
                     register_values[trans.dest_reg] = trans.value;
                 end
                 regfile_trans::ADD: begin
-                    $display("[%0dns] RF_SB Expect add result write to register r%0d, value %02h", $time,
+                    $display("[%6dns] RF_SB Expect add result write to register r%0d, value %02h", $time,
                         trans.dest_reg,
                         register_values[trans.a_reg] + register_values[trans.b_reg]);
                     arith_result =  register_values[trans.a_reg] + register_values[trans.b_reg];
@@ -65,7 +65,7 @@ class regfile_sb;
                     register_values[trans.dest_reg] = arith_result;
                 end
                 regfile_trans::SUB: begin
-                    $display("[%0dns] RF_SB Expect sub result write to register r%0d, value %02h", $time,
+                    $display("[%6dns] RF_SB Expect sub result write to register r%0d, value %02h", $time,
                         trans.dest_reg,
                         register_values[trans.a_reg] - register_values[trans.b_reg]);
 
@@ -74,25 +74,25 @@ class regfile_sb;
                     register_values[trans.dest_reg] = arith_result;
                 end
                 regfile_trans::NOP: begin
-                    $display("[%0dns] RF_SB Expect no changes to register file", $time);
+                    $display("[%6dns] RF_SB Expect no changes to register file", $time);
                 end
                 regfile_trans::JUMP: begin
                     if (this.alu_zero) begin
                         this.jump_dest = trans.next_instr_address;
-                        $display("[%0dns] RF_SB Expect jump not taken. Next PC should be @%02h",
+                        $display("[%6dns] RF_SB Expect jump not taken. Next PC should be @%02h",
                             $time, this.jump_dest);
                     end else begin
                         this.jump_dest = trans.jump_dest;
-                        $display("[%0dns] RF_SB Expect a jump to @%02h", $time, this.jump_dest);
+                        $display("[%6dns] RF_SB Expect a jump to @%02h", $time, this.jump_dest);
                     end
                 end
                 regfile_trans::CHECK_JUMP: begin
-                    $display("[%0dns] Checking jump behavior:", $time);
+                    $display("[%6dns] Checking jump behavior:", $time);
                     if (this.jump_dest != trans.jump_dest)
-                        $fatal(2, "[%0dns]     Wrong PC after JNZ instruction. PC:@%02h Expected:@%02h",
+                        $fatal(2, "[%6dns]     Wrong PC after JNZ instruction. PC:@%02h Expected:@%02h",
                             $time, trans.jump_dest, this.jump_dest);
                     else
-                        $display("[%0dns]     Correct jump behavior", $time);
+                        $display("[%6dns]     Correct jump behavior", $time);
                 end
             endcase
         end
@@ -133,21 +133,21 @@ class regfile_sb;
             mon2scb.get(trans);
             case (trans.action)
                 regfile_trans::RESET: begin
-                    $display("[%0dns] RF_SB Reset. All registers set to 0x00", $time);
+                    $display("[%6dns] RF_SB Reset. All registers set to 0x00", $time);
                 end
                 regfile_trans::WRITE: begin
-                    $display("[%0dns] RF_SB Write to register r%0d, value %02h", $time, trans.dest_reg, trans.value);
+                    $display("[%6dns] RF_SB Write to register r%0d, value %02h", $time, trans.dest_reg, trans.value);
                 end
                 regfile_trans::ADD: begin
-                    $display("[%0dns] RF_SB Write addition to register r%0d =  r%0d+r%0d (%02h)", $time, trans.dest_reg,
+                    $display("[%6dns] RF_SB Write addition to register r%0d =  r%0d+r%0d (%02h)", $time, trans.dest_reg,
                         trans.a_reg, trans.b_reg, register_values[trans.a_reg] + register_values[trans.b_reg]);
                 end
                 regfile_trans::SUB: begin
-                    $display("[%0dns] RF_SB Write subtraction to register r%0d =  r%0d-r%0d (%02h)", $time, trans.dest_reg,
+                    $display("[%6dns] RF_SB Write subtraction to register r%0d =  r%0d-r%0d (%02h)", $time, trans.dest_reg,
                         trans.a_reg, trans.b_reg, register_values[trans.a_reg] - register_values[trans.b_reg]);
                 end
                 regfile_trans::NOP: begin
-                    $display("[%0dns] RF_SB NOP", $time);
+                    $display("[%6dns] RF_SB NOP", $time);
 //                        register_values[3] = 'hFF;
                 end
             endcase
