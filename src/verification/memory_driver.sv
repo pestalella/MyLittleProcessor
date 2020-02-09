@@ -7,7 +7,7 @@
 
 import isa_pkg::*;
 
-class Instruction;
+class instruction;
     rand OpCode opcode;
     rand bit [3:0] dest_reg;
     rand bit [3:0] a_reg;
@@ -16,9 +16,22 @@ class Instruction;
     int id;
 
     constraint limited_isa  {opcode inside {MOVIR, JNZI, ADDRR, SUBRR};};
+//    constraint limited_isa  {opcode inside {MOVIR, ADDRR};};
+    constraint instr_alignment  {(opcode == JNZI) -> (value[0] == 0);};
     constraint limited_regs {dest_reg inside {[0:7]};
                                 a_reg inside {[0:7]};
                                 b_reg inside {[0:7]};};
+
+    function instruction copy;
+        copy = new();
+        copy.opcode = this.opcode;
+        copy.dest_reg = this.dest_reg;
+        copy.a_reg = this.a_reg;
+        copy.b_reg = this.b_reg;
+        copy.value = this.value;
+        copy.id = this.id;
+        return copy;
+    endfunction
 
     function bit[15:0] encoded;
         case (this.opcode)
@@ -97,13 +110,15 @@ class memory_driver;
     int counter = 0;
     bit arith_zero;
 
-    Instruction random_instruction;
+    instruction random_instruction;
     bit [15:0] injected_instruction;
     bit [7:0] jump_dest;
     bit [7:0] program_counter;
     bit expect_jump;
     int jump_id;
 
+    instruction instr_mem [0:255];
+    bit [7:0] memory [0:255];
 
     virtual memory_if vif;
     mailbox #(regfile_trans) drv2scb;
@@ -114,11 +129,22 @@ class memory_driver;
         this.drv2scb = drv2scb;
         this.test_finished = 0;
         this.random_instruction = new();
-        this.random_instruction.srandom(1);
+        this.random_instruction.srandom(2);
         this.instr_generated = 0;
         this.program_counter = 0;
         this.expect_jump = 0;
     endfunction
+
+    task fill_memory;
+        bit [15:0] encoded;
+        for (int i = 0; i < 256; i+=2) begin
+            random_instruction.randomize();
+            instr_mem[i >> 1] = random_instruction.copy();
+            encoded = random_instruction.encoded();
+            memory[i + 0] = encoded[15:8];
+            memory[i + 1] = encoded[7:0];
+        end
+    endtask
 
     function generate_instruction;
         if (counter < 8) begin
@@ -139,11 +165,30 @@ class memory_driver;
         injected_instruction = random_instruction.encoded();
         random_instruction.id = counter;
         instr_generated = 1;
-        $display("[%0dns] MEM_DRV instr_generator: new instruction [%s]", $time, random_instruction.toString());
+        $display("[%6dns] MEM_DRV instr_generator: new instruction [%s]", $time, random_instruction.toString());
     endfunction
+
+    task send_instruction_to_scoreboard(instruction instr);
+        regfile_trans trans;
+        trans = new();
+        trans.action = instr.opcode == MOVIR ? regfile_trans::WRITE :
+                        (instr.opcode == ADDRR ? regfile_trans::ADD :
+                        (instr.opcode == SUBRR ? regfile_trans::SUB :
+                        (instr.opcode ==  JNZI ? regfile_trans::JUMP :
+                        regfile_trans::NOP)));
+
+        trans.dest_reg = instr.dest_reg;
+        trans.a_reg = instr.a_reg;
+        trans.b_reg = instr.b_reg;
+        trans.value = instr.value;
+        trans.jump_dest = instr.value;
+        trans.next_instr_address = program_counter + 4;
+        drv2scb.put(trans);
+    endtask;
 
     task inject_instructions;
         regfile_trans trans;
+        instruction cur_instr;
         bit instr_begin = 1;
 
         forever begin
@@ -152,18 +197,16 @@ class memory_driver;
                     vif.rd_data <= {NOP, 4'b0000};
                 end else begin
                     if (vif.rd_en) begin
-                        vif.rd_data <= instr_begin ? injected_instruction[15:8] :
-                                                     injected_instruction[7:0];
+                        // $display("[%6dns] MEM_DRV add @%02h injected byte: %02h", $time,
+                        //     vif.rd_addr, memory[vif.rd_addr]);
+                        vif.rd_data <= memory[vif.rd_addr];
 
-                        if (instr_begin) 
+                        if (instr_begin)
                             program_counter = vif.rd_addr;
 
-                        if (instr_begin && expect_jump && (random_instruction.id == jump_id + 1)) begin
-                            trans = new();
-                            trans.action = regfile_trans::CHECK_JUMP;
-                            trans.jump_dest = program_counter;
-                            drv2scb.put(trans);
-                            expect_jump = 0;
+                        if (instr_begin) begin
+                            cur_instr = instr_mem[vif.rd_addr >> 1];
+                            send_instruction_to_scoreboard(cur_instr);
                         end
 
                         if (~instr_begin)
@@ -184,7 +227,7 @@ class memory_driver;
         wait (~instr_generated);
 
         if (counter > 1000) begin
-            $display("[%0dns] MEM_DRV: Test finished", $time);
+            $display("[%6dns] MEM_DRV: Test finished", $time);
             test_finished = 1;
         end else begin
             generate_instruction();
@@ -211,6 +254,7 @@ class memory_driver;
     endtask
 
     task run;
+        fill_memory();
         fork
             inject_instructions();
         join_any
