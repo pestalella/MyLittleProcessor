@@ -1,6 +1,7 @@
 `include "constants_pkg.sv"
 `include "execution_unit.sv"
 `include "isa_definition.sv"
+`include "memory_bus_checker.sv"
 `include "memory_driver.sv"
 `include "memory_if.sv"
 `include "regfile_if.sv"
@@ -94,6 +95,10 @@ module tb_exec_unit ();
         .wr_ram_data(mem_if.wr_data)
     );
 
+    bind dut alu_if alu_zero_if(
+        .dut_zero(alu_zero)
+    );
+
     bind dut.registers regfile_probe rf_probe(
         .clk(clk),
         .reset(reset),
@@ -141,11 +146,12 @@ module tb_exec_unit ();
     regfile_sb rf_sb;
     memory_driver mem_drv;
 
-    always_ff @(posedge new_instruction_wire) begin
-        mem_drv.new_instruction();
-    end
+    // always_ff @(posedge new_instruction_wire) begin
+    //     mem_drv.new_instruction();
+    // end
 
     initial begin
+        memory_bus_checker memb_chk;
         mailbox mon2scb;
         mailbox #(regfile_trans) drv2scb;
         regfile_mon rf_mon;
@@ -153,6 +159,7 @@ module tb_exec_unit ();
         mon2scb = new();
         drv2scb = new();
         mem_drv = new(mem_if, drv2scb);
+        memb_chk = new(mem_if, dut.alu_zero_if);
         rf_mon = new(dut.registers.rf_probe.rvif, mon2scb);
         rf_sb = new(drv2scb, mon2scb, dut.registers.regbits_probe.reg_if);
 
@@ -160,6 +167,7 @@ module tb_exec_unit ();
             reset_dut(drv2scb);
             rf_mon.run();
             rf_sb.run();
+            memb_chk.run();
             mem_drv.run();
         join_any
     end
