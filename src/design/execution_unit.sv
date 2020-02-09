@@ -164,12 +164,12 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     assign instr_arithmetic = instr_is_addrr | instr_is_addi |
                               instr_is_subrr | instr_is_subi;
-    assign reg_wr_en = ((state == EXECUTE) && (instr_is_movir | instr_is_load)) |
+    assign reg_wr_en = ((state ==     EXECUTE) && (instr_is_movir | instr_is_load)) |
                        ((state == REGISTER_WB) && (instr_is_addrr | instr_is_addi |
                                                    instr_is_subrr | instr_is_subi));
 
-    assign reg_input_sel = (instr_is_load  && (state == EXECUTE)) ? MEM_LOAD :
-                          ((instr_is_movir && (state == EXECUTE)) ? INST_IMMEDIATE :
+    assign reg_input_sel = ((state == EXECUTE) &&  instr_is_load) ? MEM_LOAD :
+                          (((state == EXECUTE) && instr_is_movir) ? INST_IMMEDIATE :
                                                                     ALU_OUTPUT);
     assign alu_inputB_sel = (instr_is_addi || instr_is_subi ) && (state == EXECUTE) ? IMMEDIATE : REGISTER_FILE;
     assign alu_zero = (instr_arithmetic && (state == REGISTER_WB)) ? alu_zero_wire : alu_zero;
