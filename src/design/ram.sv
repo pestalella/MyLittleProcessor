@@ -18,9 +18,5 @@ module ram #( parameter ADDR_BITS = 8, DATA_BITS = 8 )
         if (wr_en)
             memory[wr_addr] <= wr_data;
 
-//    always @(write_en or out_en)
-//        if (write_en && out_en)
-//            $error("RAM: out_en and write_en both active");
-
 endmodule
 `endif
