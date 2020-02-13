@@ -12,18 +12,6 @@
 import constants_pkg::*;
 import isa_pkg::*;
 
-module eu_state_change_monitor (
-    input ExecutionStage state,
-    output logic new_instruction);
-
-    always @(state) begin
-        if (state == INSTR_FETCH_START)
-            new_instruction <= 1;
-        else
-            new_instruction <= 0;
-    end
-endmodule
-
 module regfile_probe(
     input wire clk,
     input wire reset,
@@ -39,7 +27,6 @@ module regfile_probe(
     assign rvif.wr_enable = wr_enable;
     assign rvif.wr_data = wr_data;
 endmodule
-
 
 module reg_bits_probe(
     input wire clk,
@@ -78,7 +65,6 @@ module tb_exec_unit ();
     logic [MEMORY_ADDRESS_BITS-1:0] wr_ram_addr;
     logic [MEMORY_DATA_BITS-1:0] wr_ram_data;
 
-    wire new_instruction_wire;
 
     memory_if mem_if();
 
@@ -107,11 +93,6 @@ module tb_exec_unit ();
         .wr_enable(wr_enable),
         .wr_data(wr_data));
 
-    bind dut eu_state_change_monitor state_mon(
-        .state(state),
-        .new_instruction()
-    );
-
     bind dut.registers reg_bits_probe regbits_probe(
         .clk(clk),
         .r0(regs[0].r.bits),
@@ -123,8 +104,6 @@ module tb_exec_unit ();
         .r6(regs[6].r.bits),
         .r7(regs[7].r.bits)
     );
-
-    assign new_instruction_wire = dut.state_mon.new_instruction;
 
     always begin
         #5 clk = ~clk;
@@ -145,10 +124,6 @@ module tb_exec_unit ();
 
     regfile_sb rf_sb;
     memory_driver mem_drv;
-
-    // always_ff @(posedge new_instruction_wire) begin
-    //     mem_drv.new_instruction();
-    // end
 
     initial begin
         memory_bus_checker memb_chk;
