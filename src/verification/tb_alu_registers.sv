@@ -5,22 +5,22 @@ import constants_pkg::*;
 module tb_alu_registers();
     bit clk;
     bit reset;
-    
+
     always begin
         #5 clk = !clk;
     end
-    
+
     bit [2:0] addr_a;
     bit [2:0] addr_b;
     bit [2:0] addr_r;
     bit [7:0] data_in;
 //    logic [7:0] data_out;
     constants_pkg::ALUOp op;
-    
+
     alu_registers dut(
         .clk(clk),
-        .reset(reset), 
-        .addr_a(addr_a), 
+        .reset(reset),
+        .addr_a(addr_a),
         .addr_b(addr_b),
         .addr_r(addr_r),
         .data_in(data_in),
@@ -32,14 +32,14 @@ module tb_alu_registers();
         op = REG_READ;
         @(posedge clk) begin
             if (dut.data_out === 'hzz)
-                $error("Expected %02h in r%0d. Got zz instead", expected_value, reg_addr, dut.data_out);
+                $error("Expected 0x%02h in r%0d. Got zz instead", expected_value, reg_addr, dut.data_out);
             else if (dut.data_out != expected_value)
-                $error("Expected %02h in r%0d. Got %02h instead", expected_value, reg_addr, dut.data_out);
+                $error("Expected 0x%02h in r%0d. Got 0x%02h instead", expected_value, reg_addr, dut.data_out);
             else
-                $info("r%0d=%02h as expected", reg_addr, dut.data_out);
+                $info("r%0d=0x%02h as expected", reg_addr, dut.data_out);
         end
     endtask
-    
+
     task test_basic_sum();
         // r0 = 'h42
         @(posedge clk) addr_a = 0;

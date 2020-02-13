@@ -29,7 +29,7 @@ class regfile_mon;
         regfile_trans trans;
         forever begin
             @(posedge vif.wr_enable) begin
-                $display("[%6dns] RF_MONITOR: Write to register r%0d, value %02h", $time, vif.wr_addr, vif.wr_data);
+                $display("[%6dns] RF_MONITOR: Write to register r%0d, value 0x%02h", $time, vif.wr_addr, vif.wr_data);
                 trans = new();
                 trans.action = regfile_trans::WRITE;
                 trans.dest_reg = vif.wr_addr;
