@@ -42,10 +42,6 @@ class memory_bus_checker;
                     #1 $write("[%6dns] membus_chk: read addr @0x%02h", $time, mem_vif.rd_addr);
 
                     if (expect_load) begin
-                    end else begin
-                    end
-
-                    if (expect_load) begin
                         assert (next_load_addr == mem_vif.rd_addr)
                             $display(" as expected.");
                         else
