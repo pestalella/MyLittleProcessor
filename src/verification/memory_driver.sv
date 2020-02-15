@@ -1,109 +1,12 @@
 `ifndef MEMORY_DRIVER_SV
 `define MEMORY_DRIVER_SV
 
+`include "instruction.sv"
 `include "isa_definition.sv"
 `include "memory_if.sv"
 `include "regfile_trans.sv"
 
 import isa_pkg::*;
-
-class instruction;
-    rand OpCode opcode;
-    rand bit [3:0] dest_reg;
-    rand bit [3:0] a_reg;
-    rand bit [3:0] b_reg;
-    rand bit [7:0] value;
-    int id;
-
-    constraint limited_isa  {opcode inside {MOVIR, JNZI, ADDRR, SUBRR, LOAD};};
-//    constraint limited_isa  {opcode inside {MOVIR, ADDRR};};
-    constraint instr_alignment  {(opcode == JNZI) -> (value[0] == 0);};
-    constraint limited_regs {dest_reg inside {[0:7]};
-                                a_reg inside {[0:7]};
-                                b_reg inside {[0:7]};};
-
-    function instruction copy;
-        copy = new();
-        copy.opcode = this.opcode;
-        copy.dest_reg = this.dest_reg;
-        copy.a_reg = this.a_reg;
-        copy.b_reg = this.b_reg;
-        copy.value = this.value;
-        copy.id = this.id;
-        return copy;
-    endfunction
-
-    function bit[15:0] encoded;
-        case (this.opcode)
-            MOVIR: begin
-                return {opcode, dest_reg, value};
-            end
-            LOAD: begin
-                return {opcode, dest_reg, value};
-            end
-            STORE: begin
-                return {opcode, dest_reg, value};
-            end
-            ADDRR: begin
-                return {opcode, dest_reg, a_reg, b_reg};
-            end
-             ADDI: begin
-                return {opcode, dest_reg, value};
-            end
-            SUBRR: begin
-                return {opcode, dest_reg, a_reg, b_reg};
-            end
-             SUBI: begin
-                return {opcode, dest_reg, value};
-            end
-             JNZI: begin
-                return {opcode, 4'b0, value};
-            end
-              JZR: begin
-                return '0;
-            end
-              NOP: begin
-                return {opcode, 4'b0, 8'b0};
-              end
-        endcase
-
-    endfunction
-
-    function string toString;
-        case (this.opcode)
-            MOVIR: begin
-                return $sformatf("mov r%0d #0x%02h", this.dest_reg, this.value);
-            end
-            LOAD: begin
-                return $sformatf("load r%0d @0x%02h", this.dest_reg, this.value);
-            end
-            STORE: begin
-                return $sformatf("store @0x%02h r%0d", this.value, this.dest_reg);
-            end
-            ADDRR: begin
-                return $sformatf("add r%0d r%0d r%0d", this.dest_reg, this.a_reg, this.b_reg);
-            end
-             ADDI: begin
-                return $sformatf("add r%0d #0x%02h", this.dest_reg, this.value);
-            end
-            SUBRR: begin
-                return $sformatf("sub r%0d r%0d r%0d", this.dest_reg, this.a_reg, this.b_reg);
-            end
-             SUBI: begin
-                return $sformatf("sub r%0d #0x%02h", this.dest_reg, this.value);
-            end
-             JNZI: begin
-                return $sformatf("jnz @0x%02h", this.value);
-            end
-              JZR: begin
-                return $sformatf("jz reg");
-            end
-              NOP: begin
-                return $sformatf("nop");
-              end
-        endcase
-    endfunction
-endclass
 
 class memory_driver;
     bit test_finished;
@@ -157,12 +60,11 @@ class memory_driver;
         end
 
         trans = new();
-        trans.action = instr.opcode == MOVIR ? regfile_trans::WRITE :
-                      (instr.opcode ==  LOAD ? regfile_trans::WRITE :
+        trans.action = instr.opcode == MOVIR ? regfile_trans::REG_WRITE :
+                      (instr.opcode ==  LOAD ? regfile_trans::REG_WRITE :
                       (instr.opcode == ADDRR ? regfile_trans::ADD :
                       (instr.opcode == SUBRR ? regfile_trans::SUB :
-                      (instr.opcode ==  JNZI ? regfile_trans::JUMP :
-                                               regfile_trans::NOP))));
+                                               regfile_trans::NOP)));
 
         trans.dest_reg = instr.dest_reg;
         trans.a_reg = instr.a_reg;

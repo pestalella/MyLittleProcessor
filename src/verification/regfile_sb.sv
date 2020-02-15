@@ -42,7 +42,7 @@ class regfile_sb;
                         register_values[i] = '0;
                     end
                 end
-                regfile_trans::WRITE: begin
+                regfile_trans::REG_WRITE: begin
                     $display("[%6dns] RF_SB Expect write to register r%0d, value 0x%02h", $time,
                         trans.dest_reg, trans.value);
                     register_values[trans.dest_reg] = trans.value;
@@ -103,7 +103,7 @@ class regfile_sb;
                 regfile_trans::RESET: begin
                     $display("[%6dns] RF_SB Reset. All registers set to 0x00", $time);
                 end
-                regfile_trans::WRITE: begin
+                regfile_trans::REG_WRITE: begin
                     $display("[%6dns] RF_SB Write to register r%0d, value 0x%02h", $time, trans.dest_reg, trans.value);
                 end
                 regfile_trans::ADD: begin
