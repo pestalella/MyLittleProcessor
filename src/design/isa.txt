@@ -1,13 +1,21 @@
 
    inst     | opcode | op1 | op2 | op3 |       packing      
 ------------|--------|-----|-----|-----|---------------------
-mov r, i8   |  0000  | 3x  | 8x  | --  | 0000 0rrr ######## | 
-load r, m   |  0010  | 3x  | 8x  | --  | 0010 0rrr @@@@@@@@ |
-store m, r  |  0011  | 8x  | 3x  | --  | 0011 0rrr @@@@@@@@ |
-add r, r, r |  0100  | 3x  | 3x  | 3x  | 0100 0rrr 0rrr0rrr |
-add r, i8   |  0101  | 3x  | 8x  | --  | 0101 0rrr ######## |
-sub r, r, r |  0110  | 3x  | 3x  | 3x  | 0110 0rrr 0rrr0rrr |
-sub r, i8   |  0111  | 3x  | 8x  | --  | 0111 0rrr ######## |
-jnz  i8     |  1000  | 8x  | --  | --  | 1000 0000 @@@@@@@@ |
-jz  r       |  1001  | 3x  | --  | --  | 1001 0rrr 00000000 |
-nop         |  1111  | --  | --  | --  | 1111 0000 00000000 |
+mov r, i8   |  0000  | 3x  | 8x  | --  | 0000 rrrr #### #### | 
+load r, m   |  0010  | 3x  | 8x  | --  | 0010 rrrr @@@@ @@@@ |
+store m, r  |  0011  | 8x  | 3x  | --  | 0011 rrrr @@@@ @@@@ |
+add r, r, r |  0100  | 3x  | 3x  | 3x  | 0100 rrrr rrrr rrrr |
+add r, i8   |  0101  | 3x  | 8x  | --  | 0101 rrrr #### #### |
+sub r, r, r |  0110  | 3x  | 3x  | 3x  | 0110 rrrr rrrr rrrr |
+sub r, i8   |  0111  | 3x  | 8x  | --  | 0111 rrrr #### #### |
+jnz  i8     |  1000  | 8x  | --  | --  | 1000 0000 @@@@ @@@@ |
+jz  r       |  1001  | 3x  | --  | --  | 1001 rrrr 0000 0000 |
+jmp r,r     |  1010  | 3x  | --  | --  | 1010 rrrr rrrr 0000 |
+nop         |  1111  | --  | --  | --  | 1111 0000 0000 0000 |
+
+Memory accesses use 16 bit addresses. r15 is the implicit register that contains 
+the high 8 bits of the address. The program counter is now 16 bit wide. The jmp 
+instruction can be used to perform jumps to 16 bit addresses.
+
+
+# Mem

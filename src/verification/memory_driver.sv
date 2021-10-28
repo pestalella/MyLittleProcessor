@@ -73,6 +73,15 @@ class memory_driver;
         drv2scb.put(trans);
     endtask;
 
+    task track_memory_writes;
+        forever begin
+            @(vif.wr_addr or vif.wr_en) begin
+                if (vif.wr_en)
+                    $display("[%6dns] MEM_DRV captured a memory write addr:@0x%02h val: 0x%02h", $time, vif.wr_addr, vif.wr_data);
+            end
+        end
+    endtask
+
     task inject_instructions;
         regfile_trans trans;
         instruction cur_instr;
@@ -112,6 +121,7 @@ class memory_driver;
         fill_memory();
         fork
             inject_instructions();
+            track_memory_writes();
         join_any
 
     endtask

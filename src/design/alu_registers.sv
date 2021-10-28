@@ -7,12 +7,12 @@
 
 import constants_pkg::*;
 
-module alu_registers #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
+module alu_registers #( parameter DATA_BITS = 8 ) (
     input wire clk,
     input wire reset,
-    input wire [ADDR_BITS-1:0] addr_a,
-    input wire [ADDR_BITS-1:0] addr_b,
-    input wire [ADDR_BITS-1:0] addr_r,
+    input wire [3:0] addr_a,
+    input wire [3:0] addr_b,
+    input wire [3:0] addr_r,
     input wire [DATA_BITS-1:0] data_in,
     output wire [DATA_BITS-1:0] data_out,
     input constants_pkg::ALUOp op
@@ -22,7 +22,7 @@ module alu_registers #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
     logic carry;
     wire [DATA_BITS-1:0] alu_input_a, alu_input_b, alu_output, register_file_input;
     logic rd0_enable, rd1_enable, wr_enable;
-    logic [ADDR_BITS-1:0] rd0_addr, rd1_addr, wr_addr;
+    logic [3:0] rd0_addr, rd1_addr, wr_addr;
 
     bit reg_input_sel;
 
@@ -33,8 +33,7 @@ module alu_registers #( parameter ADDR_BITS = 3, DATA_BITS = 8 ) (
                    .result(alu_output),
                    .cout(carry));
 
-    register_file #(.ADDR_BITS(ADDR_BITS),
-                    .DATA_BITS(DATA_BITS))
+    register_file #(.DATA_BITS(DATA_BITS))
         registers(.clk(clk),
                   .reset(reset),
                   .rd0_addr(rd0_addr),

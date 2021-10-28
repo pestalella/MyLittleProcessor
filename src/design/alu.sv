@@ -3,7 +3,7 @@
 
 `timescale 1ns / 1ps
 
-module alu  #(parameter DATA_BITS  = 8) (
+module alu #(parameter DATA_BITS = 8) (
     input wire clk,
     input wire reset,
     input wire [DATA_BITS-1:0] a,
@@ -17,9 +17,9 @@ module alu  #(parameter DATA_BITS  = 8) (
     logic [DATA_BITS:0] reg_result;
     logic reg_zero;
 
-
     // If cin==1, it means the request is to subtract instead of add
     assign reg_result = cin? (a + ~b + cin) : (a + b);
+//    assign reg_result = 0;
     assign reg_zero = reset? 0 : ~(|reg_result[DATA_BITS-1:0]);
 
     always_ff @(posedge clk) begin

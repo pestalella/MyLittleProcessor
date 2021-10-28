@@ -9,29 +9,28 @@
 
 import constants_pkg::*;
 
-module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
-                                  DATA_BITS = REGISTER_DATA_BITS ) (
+module register_file #( parameter DATA_BITS = REGISTER_DATA_BITS ) (
     input wire clk,
     input wire reset,
     // register reading
-    input bit [ADDR_BITS-1:0] rd0_addr,
+    input bit [3:0] rd0_addr,
     input bit rd0_enable,
     output logic [DATA_BITS-1:0] rd0_data,
     // register reading
-    input bit [ADDR_BITS-1:0] rd1_addr,
+    input bit [3:0] rd1_addr,
     input bit rd1_enable,
     output logic [DATA_BITS-1:0] rd1_data,
     // register writing
-    input bit [ADDR_BITS-1:0] wr_addr,
+    input bit [3:0] wr_addr,
     input bit wr_enable,
     input logic [DATA_BITS-1:0] wr_data
     );
 
-    wire [DATA_BITS-1:0] r_data_out0 [7:0];
-    wire [DATA_BITS-1:0] r_data_out1 [7:0];
-    wire [DATA_BITS-1:0] r_data_in [7:0];
+    wire [DATA_BITS-1:0] r_data_out0 [15:0];
+    wire [DATA_BITS-1:0] r_data_out1 [15:0];
+    wire [DATA_BITS-1:0] r_data_in [15:0];
 
-    mux8to1 rd0_mux(.sel(rd0_addr),
+    mux16to1 rd0_mux(.sel(rd0_addr),
                     .in0(r_data_out0[0]),
                     .in1(r_data_out0[1]),
                     .in2(r_data_out0[2]),
@@ -40,9 +39,17 @@ module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
                     .in5(r_data_out0[5]),
                     .in6(r_data_out0[6]),
                     .in7(r_data_out0[7]),
+                    .in8(r_data_out0[8]),
+                    .in9(r_data_out0[9]),
+                    .in10(r_data_out0[10]),
+                    .in11(r_data_out0[11]),
+                    .in12(r_data_out0[12]),
+                    .in13(r_data_out0[13]),
+                    .in14(r_data_out0[14]),
+                    .in15(r_data_out0[15]),
                     .out(rd0_data));
 
-    mux8to1 rd1_mux(.sel(rd1_addr),
+    mux16to1 rd1_mux(.sel(rd1_addr),
                     .in0(r_data_out1[0]),
                     .in1(r_data_out1[1]),
                     .in2(r_data_out1[2]),
@@ -51,9 +58,17 @@ module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
                     .in5(r_data_out1[5]),
                     .in6(r_data_out1[6]),
                     .in7(r_data_out1[7]),
+                    .in8(r_data_out1[8]),
+                    .in9(r_data_out1[9]),
+                    .in10(r_data_out1[10]),
+                    .in11(r_data_out1[11]),
+                    .in12(r_data_out1[12]),
+                    .in13(r_data_out1[13]),
+                    .in14(r_data_out1[14]),
+                    .in15(r_data_out1[15]),
                     .out(rd1_data));
 
-    demux1to8 wr_demux(.sel(wr_addr),
+    demux1to16 wr_demux(.sel(wr_addr),
                     .in(wr_data),
                     .out0(r_data_in[0]),
                     .out1(r_data_in[1]),
@@ -62,10 +77,19 @@ module register_file #( parameter ADDR_BITS = REGISTER_ADDRESS_BITS,
                     .out4(r_data_in[4]),
                     .out5(r_data_in[5]),
                     .out6(r_data_in[6]),
-                    .out7(r_data_in[7]));
+                    .out7(r_data_in[7]),
+                    .out8(r_data_in[8]),
+                    .out9(r_data_in[9]),
+                    .out10(r_data_in[10]),
+                    .out11(r_data_in[11]),
+                    .out12(r_data_in[12]),
+                    .out13(r_data_in[13]),
+                    .out14(r_data_in[14]),
+                    .out15(r_data_in[15])
+                    );
 
     genvar i;
-    for (i = 0; i < 8; i++) begin : regs
+    for (i = 0; i < 16; i++) begin : regs
         register #(.DATA_BITS(DATA_BITS)) r(
             .clk(clk),
             .reset(reset),

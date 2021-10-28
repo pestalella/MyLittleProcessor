@@ -13,7 +13,7 @@ class instruction;
     rand bit [7:0] value;
     int id;
 
-    constraint limited_isa  {opcode inside {MOVIR, JNZI, ADDRR, SUBRR, LOAD};};
+    constraint limited_isa  {opcode inside {MOVIR, JNZI, ADDRR, SUBRR, LOAD, STORE};};
     constraint instr_alignment  {(opcode == JNZI) -> (value[0] == 0);};
     constraint limited_regs {dest_reg inside {[0:7]};
                                 a_reg inside {[0:7]};

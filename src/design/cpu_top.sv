@@ -100,24 +100,24 @@ module cpu_top (
         .cutoff_value(pwm_out0_cutoff_value),
         .pwm_out(pwm_out0));
 
-    pwm_driver pwm_driver1(
-        .clk(clk),
-        .reset(reset),
-        .set_cutoff_en(pwm_out1_set_cutoff_en),
-        .cutoff_value(pwm_out1_cutoff_value),
-        .pwm_out(pwm_out1));
+    // pwm_driver pwm_driver1(
+    //     .clk(clk),
+    //     .reset(reset),
+    //     .set_cutoff_en(pwm_out1_set_cutoff_en),
+    //     .cutoff_value(pwm_out1_cutoff_value),
+    //     .pwm_out(pwm_out1));
 
-    pwm_driver pwm_driver2(
-        .clk(clk),
-        .reset(reset),
-        .set_cutoff_en(pwm_out2_set_cutoff_en),
-        .cutoff_value(pwm_out2_cutoff_value),
-        .pwm_out(pwm_out2));
+    // pwm_driver pwm_driver2(
+    //     .clk(clk),
+    //     .reset(reset),
+    //     .set_cutoff_en(pwm_out2_set_cutoff_en),
+    //     .cutoff_value(pwm_out2_cutoff_value),
+    //     .pwm_out(pwm_out2));
 
-    pwm_driver pwm_driver3(
-        .clk(clk),
-        .reset(reset),
-        .set_cutoff_en(pwm_out3_set_cutoff_en),
-        .cutoff_value(pwm_out3_cutoff_value),
-        .pwm_out(pwm_out3));
+    // pwm_driver pwm_driver3(
+    //     .clk(clk),
+    //     .reset(reset),
+    //     .set_cutoff_en(pwm_out3_set_cutoff_en),
+    //     .cutoff_value(pwm_out3_cutoff_value),
+    //     .pwm_out(pwm_out3));
 endmodule

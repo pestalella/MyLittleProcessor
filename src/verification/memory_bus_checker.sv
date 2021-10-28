@@ -77,7 +77,6 @@ class memory_bus_checker;
             end
         end
     endtask
-
-endclass;
+endclass
 
 `endif

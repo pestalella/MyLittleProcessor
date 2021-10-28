@@ -53,7 +53,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     wire [REGISTER_DATA_BITS-1:0] alu_input_b, alu_output,
                                   register_file_input, regfile_rd0_data, regfile_rd1_data;
     bit [REGISTER_DATA_BITS-1:0] inst_immediate, load_mem;
-    bit [REGISTER_ADDRESS_BITS-1:0] reg_rd0_addr, reg_rd1_addr, reg_wr_addr;
+    bit [3:0] reg_rd0_addr, reg_rd1_addr, reg_wr_addr;
     bit reg_rd0_en, reg_rd1_en, reg_wr_en;
     enum bit {IMMEDIATE, REGISTER_FILE} alu_inputB_sel;
     bit save_alu_flags;
@@ -79,8 +79,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                                .in1(regfile_rd1_data),
                                .out(alu_input_b));
 
-    register_file #(.ADDR_BITS(REGISTER_ADDRESS_BITS),
-                    .DATA_BITS(REGISTER_DATA_BITS))
+    register_file #(.DATA_BITS(REGISTER_DATA_BITS))
         registers(.clk(clk),
                   .reset(reset),
 
@@ -165,35 +164,35 @@ module exec_unit #(parameter DATA_BITS = 8) (
     function void request_register_reads;
         case (ir[15:12])
             MOVIR: begin
-                reg_wr_addr    <= ir[10:8];
+                reg_wr_addr    <= ir[11:8];
                 inst_immediate <= rd_ram_data[7:0];
             end
             LOAD: begin
-                reg_wr_addr    <= ir[10:8];
+                reg_wr_addr    <= ir[11:8];
                 // Prepare next transaction
                 rd_mem_addr   <= rd_ram_data[7:0];
             end
             STORE: begin
-                reg_rd0_addr   <= ir[10:8];
+                reg_rd0_addr   <= ir[11:8];
             end
             ADDRR: begin
-                reg_rd0_addr   <= rd_ram_data[6:4];
-                reg_rd1_addr   <= rd_ram_data[2:0];
+                reg_rd0_addr   <= rd_ram_data[7:4];
+                reg_rd1_addr   <= rd_ram_data[3:0];
                 reg_wr_addr    <= ir[10:8];
             end
              ADDI: begin
-                reg_rd0_addr   <= ir[10:8];
-                reg_wr_addr    <= ir[10:8];
+                reg_rd0_addr   <= ir[11:8];
+                reg_wr_addr    <= ir[11:8];
                 inst_immediate <= rd_ram_data[7:0];
             end
             SUBRR: begin
-                reg_rd0_addr   <= rd_ram_data[6:4];
-                reg_rd1_addr   <= rd_ram_data[2:0];
+                reg_rd0_addr   <= rd_ram_data[7:4];
+                reg_rd1_addr   <= rd_ram_data[3:0];
                 reg_wr_addr    <= ir[10:8];
             end
              SUBI: begin
-                reg_rd0_addr   <= ir[10:8];
-                reg_wr_addr    <= ir[10:8];
+                reg_rd0_addr   <= ir[11:8];
+                reg_wr_addr    <= ir[11:8];
                 inst_immediate <= rd_ram_data[7:0];
             end
              JNZI: begin
@@ -210,14 +209,14 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
         case (ir[15:12])
             MOVIR: begin
-                $display("mov r%0d #%h", ir[10:8], ir[7:0]);
+                $display("mov r%0d #%h", ir[11:8], ir[7:0]);
             end
             LOAD: begin
-                $display("load r%0d @0x%02h", ir[10:8], ir[7:0]);
+                $display("load r%0d @0x%02h", ir[11:8], ir[7:0]);
                 load_mem  <= rd_ram_data;
             end
             STORE: begin
-                $display("store @0x%02h r%0d", ir[7:0], ir[10:8]);
+                $display("store @0x%02h r%0d", ir[7:0], ir[11:8]);
                 // Launch memory write
                 wr_mem_addr        <= ir[7:0];
                 wr_mem_data        <= regfile_rd0_data;
@@ -225,20 +224,16 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 mem_wr_en          <= 1;
             end
             ADDRR: begin
-                $display("add r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
-                // Enable writes to the register file from the ALU
+                $display("add r%0d r%0d r%0d", ir[11:8], ir[7:4], ir[3:0]);
             end
              ADDI: begin
-                $display("add r%0d #0x%02h", ir[10:8], ir[7:0]);
-                // Enable writes to the register file from the ALU
+                $display("add r%0d #0x%02h", ir[11:8], ir[7:0]);
             end
             SUBRR: begin
-                $display("sub r%0d r%0d r%0d", ir[10:8], ir[6:4], ir[2:0]);
-                // Enable writes to the register file from the ALU
+                $display("sub r%0d r%0d r%0d", ir[11:8], ir[7:4], ir[3:0]);
             end
              SUBI: begin
-                $display("sub r%0d #0x%02h", ir[10:8], ir[7:0]);
-                // Enable writes to the register file from the ALU
+                $display("sub r%0d #0x%02h", ir[11:8], ir[7:0]);
             end
              JNZI: begin
                 $display("jnz @0x%02h", ir[7:0]);
