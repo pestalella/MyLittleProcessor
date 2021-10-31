@@ -158,8 +158,9 @@ module exec_unit #(parameter DATA_BITS = 8) (
                                                                        ALU_OUTPUT);
 
     assign alu_inputB_sel = (instr_is_addi || instr_is_subi ) && (state == EXECUTE) ? IMMEDIATE : REGISTER_FILE;
-    assign alu_zero = (instr_arithmetic && (state == REGISTER_WB)) ? alu_zero_wire :
-                      (reset ? 0 : alu_zero);
+    // assign alu_zero = (instr_arithmetic && (state == REGISTER_WB)) ? alu_zero_wire :
+    //                   (reset ? 0 : alu_zero);
+    assign alu_zero = alu_zero_wire;
 
     function void request_register_reads;
         case (ir[15:12])

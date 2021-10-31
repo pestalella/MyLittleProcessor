@@ -54,10 +54,10 @@ module memory_io_mux(
                           (rd_mem_addr == 'hfe) |
                           (rd_mem_addr == 'hff));
 
-    assign wr_ram_addr_reg = wr_ram_en ? wr_mem_addr : wr_ram_addr_reg;
-    assign wr_ram_data_reg = wr_ram_en ? wr_mem_data : wr_ram_data_reg;
-    assign rd_ram_addr_reg = rd_ram_en ? rd_mem_addr : rd_ram_addr_reg;
-    assign rd_ram_data_reg = rd_ram_en ? rd_ram_data : rd_ram_data_reg;
+    assign wr_ram_addr_reg = wr_mem_addr;
+    assign wr_ram_data_reg = wr_mem_data;
+    assign rd_ram_addr_reg = rd_mem_addr;
+    assign rd_ram_data_reg = rd_ram_data;
 
     assign wr_ram_addr = wr_ram_addr_reg;
     assign wr_ram_data = wr_ram_data_reg;
@@ -69,10 +69,10 @@ module memory_io_mux(
     assign out_port2_write_en = wr_mem_en && (wr_mem_addr == 'hfe);
     assign out_port3_write_en = wr_mem_en && (wr_mem_addr == 'hff);
 
-    assign out_port0_reg = (wr_mem_en && (wr_mem_addr=='hfc)) ? wr_mem_data : out_port0_reg;
-    assign out_port1_reg = (wr_mem_en && (wr_mem_addr=='hfd)) ? wr_mem_data : out_port1_reg;
-    assign out_port2_reg = (wr_mem_en && (wr_mem_addr=='hfe)) ? wr_mem_data : out_port2_reg;
-    assign out_port3_reg = (wr_mem_en && (wr_mem_addr=='hff)) ? wr_mem_data : out_port3_reg;
+    assign out_port0_reg = wr_mem_data;
+    assign out_port1_reg = wr_mem_data;
+    assign out_port2_reg = wr_mem_data;
+    assign out_port3_reg = wr_mem_data;
 
     assign out_port0 = out_port0_reg;
     assign out_port1 = out_port1_reg;
