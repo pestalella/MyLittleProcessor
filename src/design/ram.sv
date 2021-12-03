@@ -17,6 +17,5 @@ module ram #( parameter ADDR_BITS = 8, DATA_BITS = 8 )
     always @(posedge clk)
         if (wr_en)
             memory[wr_addr] <= wr_data;
-
 endmodule
 `endif

@@ -58,13 +58,33 @@ Store the contents of register R<sub>s</sub> at memory address @mem
 |jnz  i8     |  1000  | 8x  | --  | --  | ```1000 0000 @@@@ @@@@``` |
 |jz  r       |  1001  | 4x  | --  | --  | ```1001 rrrr 0000 0000``` |
 |jmp r,r     |  1010  | 4x  | 4x  | --  | ```1010 rrrr rrrr 0000``` |
-|int i8      |  1011  | 8x  | --  | --  | ```1011 0000 @@@@ @@@@``` |
+|cli         |  1011  | --  | --  | --  | ```1011 0000 0000 0000``` |
+|sti         |  1100  | --  | --  | --  | ```1100 0000 0000 0000``` |
+|reti        |  1101  | --  | --  | --  | ```1101 0000 0000 0000``` |
 |nop         |  1111  | --  | --  | --  | ```1111 0000 0000 0000``` |
 
 Memory accesses use 16 bit addresses. r15 is the implicit register that contains 
 the high 8 bits of the address. The program counter is now 16 bit wide. The jmp 
 instruction can be used to perform jumps to 16 bit addresses.
 
+# Instruction execution
+
+```graphviz
+digraph finite_state_machine {
+    rankdir=LR;
+    size="10"
+
+    FETCH_START -> FETCH_END [weight=10];
+    FETCH_END   -> REGISTER_FETCH;
+    REGISTER_FETCH    -> EXECUTE  [ weight=10];
+    EXECUTE -> REGISTER_WB  [ label = "arithmetic|load" ];
+    EXECUTE -> STORE_STAGE  [ label = "store" ];
+    EXECUTE -> FETCH_START  [ label = "otherwise" ];
+    REGISTER_WB -> FETCH_START;
+    STORE_STAGE -> FETCH_START;
+    IDLE -> FETCH_START;
+}
+```
 
 # Memory layout
 
@@ -78,8 +98,17 @@ Perhaps 8 interrupts are enough? I don't think we'll ever need more than 8.
 
 # Interrupt mechanism
 
-Ah, we need a mechanism to enable and disable interrupts
-CLI, STI?
+- There is one interrupt line that can be used by the UART (for now, other peripherals in the future) to signal that data is ready.
+
+- We need a mechanism to enable and disable interrupts
+    - CLI, STI?
+
+- How do we signal the start and end of interrupt processing?
+    * The start is signaled by a jump to the interrupt service routine
+    * The execution of the original code is resumed with a RETI, which extracts the saved registers from somewhere and sets the program counter to the location where the interrupt happened
+
+- Should we support nested interrupts?
+    - Not for now. Let's try to get this mechanism working to be able to program the firmware through UART.
 
 
 

@@ -26,9 +26,9 @@ module register_file #( parameter DATA_BITS = REGISTER_DATA_BITS ) (
     input logic [DATA_BITS-1:0] wr_data
     );
 
-    wire [DATA_BITS-1:0] r_data_out0 [15:0];
-    wire [DATA_BITS-1:0] r_data_out1 [15:0];
-    wire [DATA_BITS-1:0] r_data_in [15:0];
+    wire [15:0][DATA_BITS-1:0] r_data_out0;
+    wire [15:0][DATA_BITS-1:0] r_data_out1;
+    wire [15:0][DATA_BITS-1:0] r_data_in;
 
     mux16to1 rd0_mux(.sel(rd0_addr),
                     .in0(r_data_out0[0]),

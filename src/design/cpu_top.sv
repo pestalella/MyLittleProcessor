@@ -7,10 +7,15 @@
 module cpu_top (
     input wire clk,
     input wire reset,
+
     output wire pwm_out0,
     output wire pwm_out1,
     output wire pwm_out2,
-    output wire pwm_out3
+    output wire pwm_out3,
+
+    input  wire int_req,
+    output wire int_ack
+
 );
     wire [MEMORY_ADDRESS_BITS-1:0] exec_unit_rd_mem_addr;
     wire [MEMORY_DATA_BITS-1:0] exec_unit_rd_mem_data;
@@ -45,7 +50,10 @@ module cpu_top (
 
         .wr_ram_en(exec_unit_wr_mem_en),
         .wr_ram_addr(exec_unit_wr_mem_addr),
-        .wr_ram_data(exec_unit_wr_mem_data));
+        .wr_ram_data(exec_unit_wr_mem_data),
+        .int_req(int_req),
+        .int_ack(int_ack)
+    );
 
     memory_io_mux io_mapper(
         .clk(clk),

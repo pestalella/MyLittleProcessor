@@ -138,8 +138,6 @@ module tb_exec_unit ();
         rf_mon = new(dut.registers.rf_probe.rvif, mon2scb);
         rf_sb = new(drv2scb, mon2scb, dut.registers.regbits_probe.reg_if);
 
-//        $display("######### rand seed:%s", SEED);
-
         fork
             reset_dut(drv2scb);
             rf_mon.run();

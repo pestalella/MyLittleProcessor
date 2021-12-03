@@ -18,26 +18,19 @@ module tb_top ();
     bit pwm_out2;
     bit pwm_out3;
 
-    cpu_top dut(.clk(clk),
-                .reset(reset),
-                .pwm_out0(pwm_out0),
-                .pwm_out1(pwm_out1),
-                .pwm_out2(pwm_out2),
-                .pwm_out3(pwm_out3));
+    bit int_req;
+    bit int_ack;
 
-    // bind dut execution_logger ec_logger(
-    //     .clk(clk),
-    //     .state(u_exec.state),
-    //     .memory(memory.memory),
-    //     .r0(u_exec.registers.r0.bits),
-    //     .r1(u_exec.registers.r1.bits),
-    //     .r2(u_exec.registers.r2.bits),
-    //     .r3(u_exec.registers.r3.bits),
-    //     .r4(u_exec.registers.r4.bits),
-    //     .r5(u_exec.registers.r5.bits),
-    //     .r6(u_exec.registers.r6.bits),
-    //     .r7(u_exec.registers.r7.bits)
-    // );
+    cpu_top dut(
+        .clk(clk),
+        .reset(reset),
+        .pwm_out0(pwm_out0),
+        .pwm_out1(pwm_out1),
+        .pwm_out2(pwm_out2),
+        .pwm_out3(pwm_out3),
+        .int_req(int_req),
+        .int_ack(int_ack)
+    );
 
     always begin
         #5 clk = ~clk;
@@ -47,6 +40,12 @@ module tb_top ();
     initial begin
         clk = 0;
         counter = 0;
+        int_req = 0;
+
+        dut.memory.memory['h80] = {NOP, 4'b0};
+        dut.memory.memory['h81] = 8'b0;
+        dut.memory.memory['h82] = {RETI, 4'b0};
+        dut.memory.memory['h83] = 8'b0;
 
         // Initialize memory with NOPs
         // for (int i = 0; i < 128; i+=2) begin
@@ -74,8 +73,40 @@ module tb_top ();
         // $fclose(mem_fd);
         // reset the DUT
         reset = 1;
+        @(posedge clk) ;
         @(posedge clk) reset = 0;
+        // Wait a bit before first interrupt
+        repeat (5) begin
+            @(posedge clk);
+        end
+        int_req = 1;
+        // Wait a bit and clear the int_req line
+        repeat (5) begin
+            @(posedge clk);
+        end
+        int_req = 0;
+        // Wait for ISR to finish
+        repeat (15) begin
+            @(posedge clk);
+        end
 
+        // Reset
+        reset = 1;
+        @(posedge clk);
+        @(posedge clk) reset = 0;
+        repeat (4) begin
+            @(posedge clk);
+        end
+        int_req = 1;
+        // Wait a bit and clear the int_req line
+        repeat (5) begin
+            @(posedge clk);
+        end
+        int_req = 0;
+        // Wait for ISR to finish
+        repeat (15) begin
+            @(posedge clk);
+        end
     end
 
 endmodule

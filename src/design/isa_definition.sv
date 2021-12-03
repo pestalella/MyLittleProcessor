@@ -12,6 +12,10 @@ package isa_pkg;
         SUBI  = 4'b0111,
         JNZI  = 4'b1000,
         JZR   = 4'b1001,
+        JMP   = 4'b1010,
+        CLI   = 4'b1011,
+        STI   = 4'b1100,
+        RETI  = 4'b1101,       
         NOP   = 4'b1111
     } OpCode;
 endpackage
