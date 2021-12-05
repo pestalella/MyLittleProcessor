@@ -5,7 +5,7 @@
 
 package constants_pkg;
     typedef enum bit [1:0] {REG_READ, REG_WRITE, ADD, SUB} ALUOp;
-    typedef enum bit [2:0] {IDLE, FETCH_START, FETCH_END, REGISTER_FETCH,
+    typedef enum bit [2:0] {IDLE, FETCH_END, REGISTER_FETCH,
                             EXECUTE, REGISTER_WB, LOAD_STAGE, STORE_STAGE} ExecutionStage;
     parameter int REGISTER_ADDRESS_BITS = 3;
     parameter int REGISTER_DATA_BITS = 8;

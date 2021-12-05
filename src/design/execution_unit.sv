@@ -139,8 +139,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
                               instr_is_subrr | instr_is_subi;
     assign subtract = (state == EXECUTE) && (instr_is_subrr | instr_is_subi);
 
-    assign rd_mem_en = (state == FETCH_END) | (state == REGISTER_FETCH);// | ((state == EXECUTE) && instr_is_load);
-
     assign reg_rd0_en = instr_is_store |
                         instr_is_addrr | instr_is_addi |
                         instr_is_subrr | instr_is_subi;
@@ -158,6 +156,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
         IMMEDIATE :
         REGISTER_FILE;
     assign alu_zero = alu_zero_wire;
+
 
     function void request_register_reads;
         case (ir[15:12])
@@ -211,8 +210,8 @@ module exec_unit #(parameter DATA_BITS = 8) (
         endcase
     endfunction
 
-    function void execute_instruction;
 
+    function void execute_instruction;
         case (ir[15:12])
             MOVIR: begin
                 $display("mov r%0d #%h", ir[11:8], ir[7:0]);
@@ -264,8 +263,17 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
           default: $display("Invalid opcode %b", ir[15:12]);
         endcase
-
     endfunction
+
+
+    function void fecth_start;
+        // Prepare to read next instruction
+        rd_mem_addr   <= next_pc_input;
+        mem_wr_en     <= 0;
+        rd_mem_en     <= 1;
+        state         <= FETCH_END;
+    endfunction
+
 
     typedef enum bit [1:0] {
         INT_IDLE,
@@ -318,6 +326,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             $display("RESET");
             pc_offset_sel      <= RESET;
             rd_mem_addr        <= '0;
+            rd_mem_en          <= 0;
             wr_mem_addr        <= '0;
             mem_wr_en          <= 0;
             mem_wr_in_progress <= 0;
@@ -344,15 +353,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
             prev_int_req <= int_req;
             case (state)
-                FETCH_START: begin
-                    // save ALU flags from previous instruction if necessary
-                    zero_flag     <= save_alu_flags ? alu_zero : zero_flag;
-                    carry_flag    <= save_alu_flags ? alu_carry : carry_flag;
-                    // Prepare read transaction
-                    rd_mem_addr   <= pc;
-                    mem_wr_en     <= 0;
-                    state         <= FETCH_END;
-                end
                 FETCH_END: begin
                     // Now read the data from the completed read transaction
                     ir[15:8]      <= rd_ram_data;
@@ -362,7 +362,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     state         <= REGISTER_FETCH;
                 end
                 REGISTER_FETCH: begin
-                    // Read the second half of the instruction
+                    // Got the second half of the instruction
                     ir[7:0]       <= rd_ram_data;
                     // Need to compute the jump target early, otherwise the instruction
                     // right after the jnz is executed before branching
@@ -378,6 +378,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                         int_state <= INT_JUMP_ISR;
                     end
                     request_register_reads();
+                    rd_mem_en     <= 0;
                     state         <= EXECUTE;
                 end
                 EXECUTE: begin
@@ -386,28 +387,30 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     pc_offset_sel <= NO_UPDATE;
                     execute_instruction();
                     save_alu_flags <= instr_arithmetic;
+                    // save ALU flags from previous instruction if necessary
+                    zero_flag     <= instr_arithmetic ? alu_zero : zero_flag;
+                    carry_flag    <= instr_arithmetic ? alu_carry : carry_flag;
 
                     if (instr_arithmetic || instr_is_load)
                         state      <= REGISTER_WB;
                     else if (ir[15:12] == STORE)
                         state      <= STORE_STAGE;
                     else
-                        state      <= FETCH_START;
-
+                        fecth_start();
                     if (int_state == INT_JUMP_ISR) begin
                         int_state <= INT_IDLE;
                     end
                 end
                 REGISTER_WB: begin
-                    state          <= FETCH_START;
+                    fecth_start();
                 end
                 STORE_STAGE: begin
                     mem_wr_en          <= 0;
                     mem_wr_in_progress <= 0;
-                    state              <= FETCH_START;
+                    fecth_start();
                 end
                 IDLE: begin
-                    state <= FETCH_START;
+                    fecth_start();
                 end
                 default: begin
                     state <= IDLE;

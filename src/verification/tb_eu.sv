@@ -94,7 +94,7 @@ class tb_eu_driver;
                 end
                 DRV_INT_REQUESTED: begin
                     if (next_int_time <= cycle_count) begin
-                        $display("[@%d]INT_REQ set", cycle_count);
+                        $display("[@%h]INT_REQ set", cycle_count);
                         vif.int_req <= 1;
                         state = DRV_INT_INPROGRESS;
                     end
@@ -102,7 +102,7 @@ class tb_eu_driver;
                 DRV_INT_INPROGRESS: begin
                     if (next_int_time + 5 < cycle_count) begin
                         // We've waited 5 cycles, time to clear the interrupt line
-                        $display("[@%d]INT_REQ cleared", cycle_count);
+                        $display("[@%h]INT_REQ cleared", cycle_count);
                         vif.int_req <= 0;
                         state = DRV_IDLE;
                         @(posedge vif.clk) begin
@@ -150,13 +150,13 @@ class tb_eu_scoreboard;
 //                latest_tsc = transaction.timestamp_counter;
 
                 OBS_MONITOR: begin
-                    $display("T=%0t [Scoreboard] observed pc=%d tsc=%d",
+                    $display("T=%0t [Scoreboard] observed pc=%h tsc=%h",
                         $time,
                         transaction.pc,
                         transaction.timestamp_counter);
                 end
                 OBS_DRIVER: begin
-                    $display("T=%0t [Scoreboard] observed int req @%d", $time, transaction.int_time);
+                    $display("T=%0t [Scoreboard] observed int req @%h", $time, transaction.int_time);
                 end
             endcase
         end
@@ -170,17 +170,17 @@ class tb_eu_generator;
     task run();
         driver_command cmd;
         int cnt = 5;
-        while (cnt > 0) begin
-            cmd = new;
-            if (cmd.randomize()) begin
-                $display("New interrupt request @ %d", cmd.int_time);
-                drv_mbox.put(cmd);
-            end else begin
-                $display("[tb_eu_generator::run()] Interrupt time randomization failed");
-                $finish;
-            end
-            cnt--;
-        end
+        // while (cnt > 0) begin
+        //     cmd = new;
+        //     if (cmd.randomize()) begin
+        //         $display("New interrupt request @ %d", cmd.int_time);
+        //         drv_mbox.put(cmd);
+        //     end else begin
+        //         $display("[tb_eu_generator::run()] Interrupt time randomization failed");
+        //         $finish;
+        //     end
+        //     cnt--;
+        // end
         -> drv_done;
     endtask
 endclass
