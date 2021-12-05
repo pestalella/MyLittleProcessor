@@ -297,8 +297,8 @@ module exec_unit #(parameter DATA_BITS = 8) (
                       .in3(pc),
                       .in4(constants_pkg::ISR_ADDRESS),
                       .in5(isr_saved_pc),
-                      .in6({INSTRUCTION_POINTER_BITS'('b1)}),
-                      .in7({INSTRUCTION_POINTER_BITS'('b1)}),
+                      .in6({INSTRUCTION_POINTER_BITS{1'b1}}),
+                      .in7({INSTRUCTION_POINTER_BITS{1'b1}}),
                       .out(next_pc_input));
 
     always @(posedge clk) begin

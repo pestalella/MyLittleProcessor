@@ -9,11 +9,11 @@ package constants_pkg;
                             EXECUTE, REGISTER_WB, LOAD_STAGE, STORE_STAGE} ExecutionStage;
     parameter int REGISTER_ADDRESS_BITS = 3;
     parameter int REGISTER_DATA_BITS = 8;
-    parameter int MEMORY_ADDRESS_BITS = 8;
+    parameter int MEMORY_ADDRESS_BITS = 16;
     parameter int MEMORY_DATA_BITS = 8;
     parameter int INSTRUCTION_POINTER_BITS = MEMORY_ADDRESS_BITS;
     parameter int JUMP_OFFSET_BITS = 8;
-    parameter bit[MEMORY_ADDRESS_BITS-1:0] ISR_ADDRESS = 8'h80;
+    parameter bit[MEMORY_ADDRESS_BITS-1:0] ISR_ADDRESS = 'hff00;
 endpackage
 
 `endif

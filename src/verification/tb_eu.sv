@@ -307,17 +307,17 @@ eu_test t0;
 
 initial begin
     // Initialize memory
-    memory.memory['h80] = {NOP, 4'b0};
-    memory.memory['h81] = 8'b0;
-    memory.memory['h82] = {RETI, 4'b0};
-    memory.memory['h83] = 8'b0;
+    memory.memory['hff00] = {NOP, 4'b0};
+    memory.memory['hff01] = 8'b0;
+    memory.memory['hff02] = {RETI, 4'b0};
+    memory.memory['hff03] = 8'b0;
 
     clk <= 0;
-    reset_n <= 1;
+    reset_n <= 0;
     repeat (2) begin
         @(posedge clk);
     end
-    reset_n <= 0;
+    reset_n <= 1;
 
     t0 = new;
     t0.e0.eu_vif = eu_if;
