@@ -5,7 +5,7 @@
 
 module register #(parameter DATA_BITS  = 8) (
     input wire clk,
-    input wire reset,
+    input wire reset_n,
     input wire load,
     input wire [DATA_BITS-1:0] data_in,
     input wire out0_en,
@@ -15,8 +15,8 @@ module register #(parameter DATA_BITS  = 8) (
     );
 
     bit [DATA_BITS-1:0] bits;
-    always @(negedge clk or posedge reset)
-        if (reset)
+    always @(negedge clk)
+        if (!reset_n)
             bits <= 0;
         else if (load) begin
             assert (^data_in !== 1'bX)

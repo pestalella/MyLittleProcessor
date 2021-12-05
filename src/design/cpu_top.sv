@@ -6,7 +6,7 @@
 
 module cpu_top (
     input wire clk,
-    input wire reset,
+    input wire reset_n,
 
     output wire pwm_out0,
     output wire pwm_out1,
@@ -42,7 +42,7 @@ module cpu_top (
 
     exec_unit #(.DATA_BITS(8)) u_exec(
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
 
         .rd_ram_en(exec_unit_rd_mem_en),
         .rd_ram_addr(exec_unit_rd_mem_addr),
@@ -102,28 +102,28 @@ module cpu_top (
 
     pwm_driver pwm_driver0(
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
         .set_cutoff_en(pwm_out0_set_cutoff_en),
         .cutoff_value(pwm_out0_cutoff_value),
         .pwm_out(pwm_out0));
 
     pwm_driver pwm_driver1(
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
         .set_cutoff_en(pwm_out1_set_cutoff_en),
         .cutoff_value(pwm_out1_cutoff_value),
         .pwm_out(pwm_out1));
 
     pwm_driver pwm_driver2(
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
         .set_cutoff_en(pwm_out2_set_cutoff_en),
         .cutoff_value(pwm_out2_cutoff_value),
         .pwm_out(pwm_out2));
 
     pwm_driver pwm_driver3(
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
         .set_cutoff_en(pwm_out3_set_cutoff_en),
         .cutoff_value(pwm_out3_cutoff_value),
         .pwm_out(pwm_out3));

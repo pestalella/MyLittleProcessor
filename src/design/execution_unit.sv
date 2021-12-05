@@ -14,7 +14,7 @@ import isa_pkg::*;
 
 module exec_unit #(parameter DATA_BITS = 8) (
     input  wire clk,
-    input  wire reset,
+    input  wire reset_n,
 
     output wire rd_ram_en,
     output wire [MEMORY_ADDRESS_BITS-1:0] rd_ram_addr,
@@ -75,7 +75,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     alu #(.DATA_BITS(REGISTER_DATA_BITS))
         arith_unit(.clk(clk),
-                   .reset(reset),
+                   .reset_n(reset_n),
                    .a(regfile_rd0_data),
                    .b(alu_input_b),
                    .cin(subtract),
@@ -90,7 +90,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     register_file #(.DATA_BITS(REGISTER_DATA_BITS))
         registers(.clk(clk),
-                  .reset(reset),
+                  .reset_n(reset_n),
 
                   .rd0_enable(reg_rd0_en),
                   .rd0_addr(reg_rd0_addr),
@@ -286,35 +286,35 @@ module exec_unit #(parameter DATA_BITS = 8) (
         RESERVED_        = 6,
         RESERVED__       = 7
     } pc_offset_sel;
-    wire [JUMP_OFFSET_BITS-1:0] next_pc_input;
-    bit [JUMP_OFFSET_BITS-1:0] jump_dest;
+    wire [INSTRUCTION_POINTER_BITS-1:0] next_pc_input;
+    bit [INSTRUCTION_POINTER_BITS-1:0] jump_dest;
 
-    mux8to1 #(.DATA_BITS(JUMP_OFFSET_BITS))
+    mux8to1 #(.DATA_BITS(INSTRUCTION_POINTER_BITS))
         pc_offset_mux(.sel(pc_offset_sel),
                       .in0('0),
-                      .in1(8'(pc + 2)),
+                      .in1(INSTRUCTION_POINTER_BITS'(pc + 2)),
                       .in2(jump_dest),
                       .in3(pc),
                       .in4(constants_pkg::ISR_ADDRESS),
                       .in5(isr_saved_pc),
-                      .in6(8'b1),
-                      .in7(8'b1),
+                      .in6({INSTRUCTION_POINTER_BITS'('b1)}),
+                      .in7({INSTRUCTION_POINTER_BITS'('b1)}),
                       .out(next_pc_input));
 
     always @(posedge clk) begin
-        if (reset) begin
+        if (!reset_n) begin
             timestamp_counter  <= 0;
             pc  <= 0;
         end else begin
             timestamp_counter++;
             pc  <= (int_state == INT_JUMP_ISR)?
-                    constants_pkg::ISR_ADDRESS :
+                    ISR_ADDRESS :
                     next_pc_input;
         end
     end
 
     always @(posedge clk) begin
-        if (reset) begin
+        if (!reset_n) begin
             $display("RESET");
             pc_offset_sel      <= RESET;
             rd_mem_addr        <= '0;

@@ -5,7 +5,7 @@
 
 module pwm_driver(
     input wire clk,
-    input wire reset,
+    input wire reset_n,
     input wire set_cutoff_en,
     input wire [7:0] cutoff_value,
     output wire pwm_out
@@ -31,8 +31,8 @@ mux2to1 counter_input_mux(
     .out(counter)
 );
 
-always_ff @(posedge clk or posedge reset) begin
-    if (reset) begin
+always_ff @(posedge clk) begin
+    if (!reset_n) begin
         pwm_clk_counter   <= '0;
         counter_input_sel <= RESET;
         cutoff            <= 'h7f;

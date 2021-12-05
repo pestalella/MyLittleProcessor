@@ -17,10 +17,10 @@ interface exec_unit_if(input bit clk);
     logic int_ack;
 
     modport memory(
-        input rd_data, 
-        output rd_addr, 
-        output rd_en, 
-        output wr_addr, 
+        input rd_data,
+        output rd_addr,
+        output rd_en,
+        output wr_addr,
         output wr_data,
         output wr_en);
 endinterface
@@ -52,7 +52,7 @@ class driver_command;
 endclass
 
 typedef enum {
-    DRV_IDLE, 
+    DRV_IDLE,
     DRV_INT_REQUESTED,
     DRV_INT_INPROGRESS
 } DriverState;
@@ -61,7 +61,7 @@ class tb_eu_driver;
     virtual exec_unit_if vif;
     event drv_done;
     mailbox drv_mbox;
-    mailbox scb_mbox;  
+    mailbox scb_mbox;
     int cycle_count;
     int next_int_time;
     DriverState state;
@@ -76,14 +76,14 @@ class tb_eu_driver;
         forever begin
             @(posedge vif.clk);
             cycle_count++;
-            // $display("[tb_eu_driver] [@ %d] next_int_time:%d state: %s", 
+            // $display("[tb_eu_driver] [@ %d] next_int_time:%d state: %s",
             //     cycle_count, next_int_time, state.name);
             case (state)
                 DRV_IDLE: begin
                     driver_command cmd;
                     eu_observation transaction = new;
 
-                    drv_mbox.get(cmd); 
+                    drv_mbox.get(cmd);
                     next_int_time = cycle_count + cmd.int_time;
 
                     transaction.org = OBS_DRIVER;
@@ -145,13 +145,13 @@ class tb_eu_scoreboard;
         latest_tsc = 0;
         forever begin
             eu_observation transaction;
-            scb_mbox.get(transaction); 
+            scb_mbox.get(transaction);
             case (transaction.org)
 //                latest_tsc = transaction.timestamp_counter;
 
                 OBS_MONITOR: begin
-                    $display("T=%0t [Scoreboard] observed pc=%d tsc=%d", 
-                        $time, 
+                    $display("T=%0t [Scoreboard] observed pc=%d tsc=%d",
+                        $time,
                         transaction.pc,
                         transaction.timestamp_counter);
                 end
@@ -161,7 +161,7 @@ class tb_eu_scoreboard;
             endcase
         end
     endtask
-    
+
 endclass
 
 class tb_eu_generator;
@@ -251,7 +251,7 @@ always begin
     #5 clk = ~clk;
 end
 
-logic reset;
+logic reset_n;
 
 logic rd_ram_en;
 logic [MEMORY_ADDRESS_BITS-1:0] rd_ram_addr;
@@ -265,7 +265,7 @@ exec_unit_if eu_if(clk);
 
 exec_unit #(.DATA_BITS(8)) dut(
     .clk(clk),
-    .reset(reset),
+    .reset_n(reset_n),
 
     .rd_ram_en(eu_if.rd_en),
     .rd_ram_addr(eu_if.rd_addr),
@@ -278,20 +278,28 @@ exec_unit #(.DATA_BITS(8)) dut(
     .int_ack(eu_if.int_ack)
 );
 
-ram memory(
-    .clk(clk),
-    .rd_en(eu_if.rd_en),
-    .rd_addr(eu_if.rd_addr),
-    .rd_data(eu_if.rd_data),
-    .wr_en(eu_if.wr_en),
-    .wr_addr(eu_if.wr_addr),
-    .wr_data(eu_if.wr_data)
-);
+// ram memory(
+//     .clk(clk),
+//     .rd_en(eu_if.rd_en),
+//     .rd_addr(eu_if.rd_addr),
+//     .rd_data(eu_if.rd_data),
+
+//     .wr_en(eu_if.wr_en),
+//     .wr_addr(eu_if.wr_addr),
+//     .wr_data(eu_if.wr_data)
+// );
+
+rom #(.ADDR_BITS(MEMORY_ADDRESS_BITS),
+      .DATA_BITS(8),
+      .memory_file("pwm.mem"))
+    memory(.rd_en(eu_if.rd_en),
+           .rd_addr(eu_if.rd_addr),
+           .rd_data(eu_if.rd_data));
 
 
 bind dut exec_unit_pc_if pc_if(
     .clk(clk),
-    .pc(pc), 
+    .pc(pc),
     .timestamp_counter(timestamp_counter)
 );
 
@@ -305,11 +313,11 @@ initial begin
     memory.memory['h83] = 8'b0;
 
     clk <= 0;
-    reset <= 1;
+    reset_n <= 1;
     repeat (2) begin
         @(posedge clk);
     end
-    reset <= 0;
+    reset_n <= 0;
 
     t0 = new;
     t0.e0.eu_vif = eu_if;

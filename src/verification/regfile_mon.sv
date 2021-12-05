@@ -16,7 +16,7 @@ class regfile_mon;
     task capture_resets;
         regfile_trans trans;
         forever begin
-            @(posedge vif.reset) begin
+            @(posedge vif.reset_n) begin
                 $display("[%6dns] RF_MONITOR: Reset triggered", $time);
                 trans = new();
                 trans.action = regfile_trans::RESET;

@@ -2,7 +2,7 @@
 
 module tb_pwm_driver();
     bit clk;
-    bit reset;
+    bit reset_n;
     bit set_cutoff_en;
     bit [7:0] cutoff_value;
     bit [7:0] counter;
@@ -10,7 +10,7 @@ module tb_pwm_driver();
 
     pwm_driver dut(
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
         .set_cutoff_en(set_cutoff_en),
         .cutoff_value(cutoff_value),
         .pwm_out(pwm_out)
@@ -19,18 +19,18 @@ module tb_pwm_driver();
     always begin
         #5 clk = ~clk;
     end
-    
+
     always @(posedge clk)
         counter += 1;
 
     initial begin
         clk = 0;
         counter = 0;
-        reset = 1;
+        reset_n = 0;
         set_cutoff_en = 0;
 
         @(posedge clk) begin
-            reset = 0;
+            reset_n = 1;
             set_cutoff_en = 1;
             cutoff_value = 254;
         end

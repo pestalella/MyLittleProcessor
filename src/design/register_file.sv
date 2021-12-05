@@ -11,7 +11,7 @@ import constants_pkg::*;
 
 module register_file #( parameter DATA_BITS = REGISTER_DATA_BITS ) (
     input wire clk,
-    input wire reset,
+    input wire reset_n,
     // register reading
     input bit [3:0] rd0_addr,
     input bit rd0_enable,
@@ -92,7 +92,7 @@ module register_file #( parameter DATA_BITS = REGISTER_DATA_BITS ) (
     for (i = 0; i < 16; i++) begin : regs
         register #(.DATA_BITS(DATA_BITS)) r(
             .clk(clk),
-            .reset(reset),
+            .reset_n(reset_n),
             .data_in(r_data_in[i]),
             .data_out0(r_data_out0[i]),
             .data_out1(r_data_out1[i]),

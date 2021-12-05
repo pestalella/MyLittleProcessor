@@ -2,12 +2,12 @@
 
 module tb_alu_registerfile( );
     logic clk;
-    logic reset;
-    
+    logic reset_n;
+
     always begin
         #5 clk = !clk;
     end
-    
+
     logic subtract;
     logic carry;
 
@@ -21,14 +21,14 @@ module tb_alu_registerfile( );
     logic [7:0] rd1_data;
     logic [7:0] wr_data;
 
-    alu dutALU(.a(rd0_data), 
+    alu dutALU(.a(rd0_data),
                .b(rd1_data),
-               .cin(subtract), 
-               .result(wr_data), 
+               .cin(subtract),
+               .result(wr_data),
                .cout(carry));
 
-    register_file dutRegs(.clk(clk), 
-                      .reset(reset),
+    register_file dutRegs(.clk(clk),
+                      .reset_n(reset_n),
                       .rd0_enable(rd0_enable),
                       .rd0_addr(rd0_addr),
                       .rd0_data(rd0_data),
@@ -41,7 +41,7 @@ module tb_alu_registerfile( );
 
     initial begin
         clk <= 0;
-        reset <= 0;
+        reset_n <= 1;
         subtract <= 0;
         rd0_enable <= 0;
         rd1_enable <= 0;
@@ -64,19 +64,19 @@ module tb_alu_registerfile( );
             rd0_enable <= 0;
             rd1_enable <= 0;
         end
-        
+
         @(posedge clk) begin
             rd0_addr <= 2;
             rd1_addr <= 7;
             wr_addr <= 2;   // r2 := r2 + r7;
             rd0_enable <= 1;
-            rd1_enable <= 1; 
+            rd1_enable <= 1;
         end
         @(posedge clk) wr_enable <= 1;
         @(posedge clk) begin
             wr_enable <= 0;
         end
-        
+
         #10;
     end
 endmodule

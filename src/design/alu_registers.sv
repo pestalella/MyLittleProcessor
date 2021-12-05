@@ -9,7 +9,7 @@ import constants_pkg::*;
 
 module alu_registers #( parameter DATA_BITS = 8 ) (
     input wire clk,
-    input wire reset,
+    input wire reset_n,
     input wire [3:0] addr_a,
     input wire [3:0] addr_b,
     input wire [3:0] addr_r,
@@ -35,7 +35,7 @@ module alu_registers #( parameter DATA_BITS = 8 ) (
 
     register_file #(.DATA_BITS(DATA_BITS))
         registers(.clk(clk),
-                  .reset(reset),
+                  .reset_n(reset_n),
                   .rd0_addr(rd0_addr),
                   .rd1_addr(rd1_addr),
                   .wr_addr(wr_addr),

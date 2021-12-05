@@ -6,7 +6,7 @@ import isa_pkg::*;
 
 module tb_top ();
     bit clk;
-    bit reset;
+    bit reset_n;
     int counter;
     integer test_cfg_fd, mem_fd;
     string line;
@@ -23,7 +23,7 @@ module tb_top ();
 
     cpu_top dut(
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
         .pwm_out0(pwm_out0),
         .pwm_out1(pwm_out1),
         .pwm_out2(pwm_out2),
@@ -72,9 +72,9 @@ module tb_top ();
         // $display("%d bytes read from file %s", bytes_read, infile_path);
         // $fclose(mem_fd);
         // reset the DUT
-        reset = 1;
+        reset_n = 0;
         @(posedge clk) ;
-        @(posedge clk) reset = 0;
+        @(posedge clk) reset_n = 1;
         // Wait a bit before first interrupt
         repeat (5) begin
             @(posedge clk);
@@ -91,9 +91,9 @@ module tb_top ();
         end
 
         // Reset
-        reset = 1;
+        reset_n = 0;
         @(posedge clk);
-        @(posedge clk) reset = 0;
+        @(posedge clk) reset_n = 1;
         repeat (4) begin
             @(posedge clk);
         end

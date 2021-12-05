@@ -4,7 +4,7 @@ import constants_pkg::*;
 
 module tb_alu_registers();
     bit clk;
-    bit reset;
+    bit reset_n;
 
     always begin
         #5 clk = !clk;
@@ -19,7 +19,7 @@ module tb_alu_registers();
 
     alu_registers dut(
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
         .addr_a(addr_a),
         .addr_b(addr_b),
         .addr_r(addr_r),
@@ -110,8 +110,8 @@ module tb_alu_registers();
     initial begin
         clk = 0;
         // reset the DUT
-        reset = 1;
-        @(posedge clk) reset = 0;
+        reset_n = 0;
+        @(posedge clk) reset_n = 1;
         test_basic_sum();
         test_fibonacci();
     end

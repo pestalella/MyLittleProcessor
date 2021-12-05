@@ -4,15 +4,15 @@
 
 module tb_register_file();
     logic clk;
-    logic reset;
-    
+    logic reset_n;
+
     logic [7:0] saved_value0;
     logic [7:0] saved_value1;
-    
+
     always begin
         #5 clk = !clk;
     end
-    
+
     logic [2:0] rd0_addr;
     logic [2:0] rd1_addr;
     logic [2:0] wr_addr;
@@ -23,8 +23,8 @@ module tb_register_file();
     logic [7:0] rd1_data;
     logic [7:0] wr_data;
 
-    register_file dut(.clk(clk), 
-                      .reset(reset),
+    register_file dut(.clk(clk),
+                      .reset_n(reset_n),
                       .rd0_enable(rd0_enable),
                       .rd0_addr(rd0_addr),
                       .rd0_data(rd0_data),
@@ -34,10 +34,10 @@ module tb_register_file();
                       .wr_enable(wr_enable),
                       .wr_addr(wr_addr),
                       .wr_data(wr_data));
-    
+
     initial begin
         clk = 0;
-        reset = 0;
+        reset_n = 1;
         rd0_enable = 0;
         rd1_enable = 0;
         #7;
@@ -67,8 +67,8 @@ module tb_register_file();
             rd0_enable = 0;
             rd1_enable = 0;
             #5;
-        end    
-        
+        end
+
         @(posedge clk) begin
             rd0_addr = 7;
             rd0_enable = 1;

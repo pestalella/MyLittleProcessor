@@ -5,7 +5,7 @@
 
 module alu #(parameter DATA_BITS = 8) (
     input wire clk,
-    input wire reset,
+    input wire reset_n,
     input wire [DATA_BITS-1:0] a,
     input wire [DATA_BITS-1:0] b,
     input wire cin,
@@ -19,8 +19,7 @@ module alu #(parameter DATA_BITS = 8) (
 
     // If cin==1, it means the request is to subtract instead of add
     assign reg_result = cin? (a + ~b + cin) : (a + b);
-//    assign reg_result = 0;
-    assign reg_zero = reset? 0 : ~(|reg_result[DATA_BITS-1:0]);
+    assign reg_zero = reset_n? ~(|reg_result[DATA_BITS-1:0]) : 0;
 
     always_ff @(posedge clk) begin
         {cout, result} <= reg_result;

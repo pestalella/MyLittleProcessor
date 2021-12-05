@@ -14,7 +14,7 @@ import isa_pkg::*;
 
 module regfile_probe(
     input wire clk,
-    input wire reset,
+    input wire reset_n,
     input wire [REGISTER_ADDRESS_BITS-1:0] wr_addr,
     input wire wr_enable,
     input wire [REGISTER_DATA_BITS-1:0] wr_data);
@@ -22,7 +22,7 @@ module regfile_probe(
     regfile_if rvif();
 
     assign rvif.clk = clk;
-    assign rvif.reset = reset;
+    assign rvif.reset_n = reset_n;
     assign rvif.wr_addr = wr_addr;
     assign rvif.wr_enable = wr_enable;
     assign rvif.wr_data = wr_data;
@@ -55,7 +55,7 @@ endmodule
 module tb_exec_unit ();
 
     logic clk;
-    logic reset;
+    logic reset_n;
 
     logic rd_ram_en;
     logic [MEMORY_ADDRESS_BITS-1:0] rd_ram_addr;
@@ -70,7 +70,7 @@ module tb_exec_unit ();
 
     exec_unit #(.DATA_BITS(8)) dut (
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
 
         .rd_ram_en(mem_if.rd_en),
         .rd_ram_addr(mem_if.rd_addr),
@@ -87,7 +87,7 @@ module tb_exec_unit ();
 
     bind dut.registers regfile_probe rf_probe(
         .clk(clk),
-        .reset(reset),
+        .reset_n(reset_n),
 
         .wr_addr(wr_addr),
         .wr_enable(wr_enable),
@@ -117,9 +117,9 @@ module tb_exec_unit ();
 
         clk = 0;
         // reset the DUT
-        reset = 1;
+        reset_n = 0;
         @(posedge clk)
-            #5 reset = 0;
+            #5 reset_n = 1;
     endtask
 
     regfile_sb rf_sb;
