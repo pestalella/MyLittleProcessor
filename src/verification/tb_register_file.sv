@@ -1,7 +1,5 @@
 `timescale 1ns / 1ps
 
-`include "register_file.sv"
-
 module tb_register_file();
     logic clk;
     logic reset_n;

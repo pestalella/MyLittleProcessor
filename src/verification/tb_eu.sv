@@ -1,10 +1,8 @@
 `timescale 1ns / 1ps
 
-`include "constants_pkg.sv"
+//`include "constants_pkg.sv"
 
 import constants_pkg::*;
-
-
 
 interface exec_unit_if(input bit clk);
     logic rd_en;
@@ -26,9 +24,9 @@ interface exec_unit_if(input bit clk);
 endinterface
 
 interface exec_unit_pc_if(
-    input bit clk,
-    input bit [MEMORY_ADDRESS_BITS-1:0] pc,
-    input bit [31:0] timestamp_counter);
+    input logic clk,
+    input logic [MEMORY_ADDRESS_BITS-1:0] pc,
+    input logic [31:0] timestamp_counter);
 endinterface
 
 typedef enum {
@@ -39,7 +37,7 @@ typedef enum {
 class eu_observation;
     ObsOrigin org;
     int int_time;
-    bit [MEMORY_ADDRESS_BITS-1:0] pc;
+    logic [MEMORY_ADDRESS_BITS-1:0] pc;
     bit [31:0] timestamp_counter;
 endclass
 

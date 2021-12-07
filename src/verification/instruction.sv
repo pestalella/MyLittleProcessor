@@ -1,16 +1,12 @@
 `ifndef INSTRUCTION_SV
 `define INSTRUCTION_SV
 
-`include "isa_definition.sv"
-
-import isa_pkg::*;
-
 class instruction;
     rand OpCode opcode;
-    rand bit [3:0] dest_reg;
-    rand bit [3:0] a_reg;
-    rand bit [3:0] b_reg;
-    rand bit [7:0] value;
+    rand logic [3:0] dest_reg;
+    rand logic [3:0] a_reg;
+    rand logic [3:0] b_reg;
+    rand logic [7:0] value;
     int id;
 
     constraint limited_isa  {opcode inside {MOVIR, JNZI, ADDRR, SUBRR, LOAD, STORE};};
@@ -30,7 +26,7 @@ class instruction;
         return copy;
     endfunction
 
-    function bit[15:0] encoded;
+    function logic[15:0] encoded;
         case (this.opcode)
             MOVIR: begin
                 return {opcode, dest_reg, value};

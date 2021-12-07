@@ -1,10 +1,6 @@
 `ifndef MEMORY_BUS_CHECKER_SV
 `define MEMORY_BUS_CHECKER_SV
 
-`include "alu_if.sv"
-`include "isa_definition.sv"
-`include "memory_if.sv"
-
 import isa_pkg::*;
 
 // This checker snoops on the memory interface and decodes the instructions
@@ -27,10 +23,10 @@ class memory_bus_checker;
 
     task run;
         OpCode opcode;
-        bit instr_start;
-        bit expect_load;
-        bit [7:0] next_instr_addr;
-        bit [7:0] next_load_addr;
+        logic instr_start;
+        logic expect_load;
+        logic [7:0] next_instr_addr;
+        logic [7:0] next_load_addr;
 
         expect_load = 0;
         instr_start = 1;

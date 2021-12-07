@@ -2,30 +2,27 @@
 `define MEMORY_DRIVER_SV
 
 `include "instruction.sv"
-`include "isa_definition.sv"
-`include "memory_if.sv"
-`include "regfile_trans.sv"
 
 import isa_pkg::*;
 
 class memory_driver;
-    bit test_finished;
+    logic test_finished;
     int counter = 0;
-    bit arith_zero;
+    logic arith_zero;
 
     instruction random_instruction;
-    bit [15:0] injected_instruction;
-    bit [7:0] jump_dest;
-    bit [7:0] program_counter;
-    bit expect_jump;
+    logic [15:0] injected_instruction;
+    logic [7:0] jump_dest;
+    logic [7:0] program_counter;
+    logic expect_jump;
     int jump_id;
 
     instruction instr_mem [0:255];
-    bit [7:0] memory [0:255];
+    logic [7:0] memory [0:255];
 
     virtual memory_if vif;
     mailbox #(regfile_trans) drv2scb;
-    bit instr_generated;
+    logic instr_generated;
 
     function new (virtual memory_if.mem_mon vif, mailbox #(regfile_trans) drv2scb);
         this.vif = vif;
@@ -39,7 +36,7 @@ class memory_driver;
     endfunction
 
     task fill_memory;
-        bit [15:0] encoded;
+        logic [15:0] encoded;
         for (int i = 0; i < 256; i+=2) begin
             random_instruction.randomize();
             instr_mem[i >> 1] = random_instruction.copy();
@@ -85,7 +82,7 @@ class memory_driver;
     task inject_instructions;
         regfile_trans trans;
         instruction cur_instr;
-        bit instr_begin = 1;
+        logic instr_begin = 1;
 
         forever begin
             @(vif.rd_addr or vif.rd_en) begin

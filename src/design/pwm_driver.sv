@@ -12,14 +12,14 @@ module pwm_driver(
 );
     parameter PWM_PERIOD = 7'd100;   // divide input freq by 100
     parameter PWM_HALF_PERIOD = PWM_PERIOD/2;
-    bit clk_pwm;
-    bit [7:0] pwm_clk_counter = 0;
+    logic clk_pwm;
+    logic [7:0] pwm_clk_counter = 0;
 
-    bit [7:0] cutoff;
-    bit [7:0] counter;
-    bit [7:0] next_counter;
-    bit out;
-    enum bit {RESET, INCREASE} counter_input_sel;
+    logic [7:0] cutoff;
+    logic [7:0] counter;
+    logic [7:0] next_counter;
+    logic out;
+    enum logic {RESET, INCREASE} counter_input_sel;
 
     assign pwm_out = out;
 

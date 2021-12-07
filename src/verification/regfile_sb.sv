@@ -1,10 +1,8 @@
 `ifndef REGFILE_SB_SV
 `define REGFILE_SB_SV
 
-`include "constants_pkg.sv"
 `include "regfile_trans.sv"
 `include "register_inspection_if.sv"
-
 
 class regfile_sb;
     mailbox #(regfile_trans) drv2scb;
@@ -12,7 +10,7 @@ class regfile_sb;
     virtual register_inspection_if vif;
 
     const int num_regs = 1 << REGISTER_ADDRESS_BITS;
-    bit [REGISTER_DATA_BITS-1:0] register_values[1 << REGISTER_ADDRESS_BITS];
+    logic [REGISTER_DATA_BITS-1:0] register_values[1 << REGISTER_ADDRESS_BITS];
 
     function new(mailbox #(regfile_trans) drv2scb, mailbox mon2scb, virtual register_inspection_if vif);
         this.drv2scb = drv2scb;
@@ -66,7 +64,7 @@ class regfile_sb;
         end
     endtask
 
-    function bit transactions_equal(regfile_trans t1, regfile_trans t2);
+    function logic transactions_equal(regfile_trans t1, regfile_trans t2);
         transactions_equal = t1.action == t2.action &&
                              t1.dest_reg == t2.dest_reg &&
                              t1.a_reg == t2.a_reg &&

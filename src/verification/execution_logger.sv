@@ -3,14 +3,10 @@
 
 `timescale 1ns / 1ps
 
-`include "constants_pkg.sv"
-
-import constants_pkg::*;
-
 module execution_logger (
     input wire clk,
-    input ExecutionStage state,
-    input bit [7:0] memory [0:255],
+    input constants_pkg::ExecutionStage state,
+    input logic [7:0] memory [0:255],
     input wire [7:0] r0,
     input wire [7:0] r1,
     input wire [7:0] r2,
@@ -20,6 +16,8 @@ module execution_logger (
     input wire [7:0] r6,
     input wire [7:0] r7
 );
+    import constants_pkg::*;
+
     always @(posedge clk) begin
         if (state == FETCH_END) begin
             $display("Memory: %h %h %h %h %h %h %h %h r0=%h r1=%h r2=%h r3=%h r4=%h r5=%h r6=%h r7=%h",

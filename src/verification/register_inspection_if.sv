@@ -1,11 +1,9 @@
 `ifndef REGISTER_INSPECTION_IF
 `define REGISTER_INSPECTION_IF
 
-`include "constants_pkg.sv"
-
-import constants_pkg::*;
-
 interface register_inspection_if();
+    import constants_pkg::*;
+
     logic clk;
     logic [REGISTER_DATA_BITS-1:0] r0;
     logic [REGISTER_DATA_BITS-1:0] r1;

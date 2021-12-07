@@ -10,7 +10,7 @@ module ram #( parameter ADDR_BITS = 8, DATA_BITS = 8 )
      input  wire [ADDR_BITS-1:0] wr_addr,
      input  wire [DATA_BITS-1:0] wr_data);
 
-    bit [DATA_BITS-1:0] memory [0: (1<<ADDR_BITS) - 1];
+    logic [DATA_BITS-1:0] memory [0: (1<<ADDR_BITS) - 1];
 
     assign rd_data = rd_en ? memory[rd_addr] : {DATA_BITS{1'bz}};
 

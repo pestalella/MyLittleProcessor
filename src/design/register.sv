@@ -14,7 +14,7 @@ module register #(parameter DATA_BITS  = 8) (
     output wire [DATA_BITS-1:0] data_out1
     );
 
-    bit [DATA_BITS-1:0] bits;
+    logic [DATA_BITS-1:0] bits;
     always @(negedge clk)
         if (!reset_n)
             bits <= 0;

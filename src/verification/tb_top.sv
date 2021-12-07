@@ -1,25 +1,24 @@
 `include "execution_logger.sv"
-`include "execution_unit.sv"
-`include "isa_definition.sv"
-
-import isa_pkg::*;
 
 module tb_top ();
-    bit clk;
-    bit reset_n;
+
+    import isa_pkg::*;
+
+    logic clk;
+    logic reset_n;
     int counter;
     integer test_cfg_fd, mem_fd;
     string line;
     string infile_path;
     integer bytes_read;
 
-    bit pwm_out0;
-    bit pwm_out1;
-    bit pwm_out2;
-    bit pwm_out3;
+    logic pwm_out0;
+    logic pwm_out1;
+    logic pwm_out2;
+    logic pwm_out3;
 
-    bit int_req;
-    bit int_ack;
+    logic int_req;
+    logic int_ack;
 
     cpu_top dut(
         .clk(clk),

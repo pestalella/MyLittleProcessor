@@ -7,24 +7,24 @@
 `include "muxers.sv"
 `include "register.sv"
 
-module register_file #( parameter DATA_BITS = REGISTER_DATA_BITS ) (
-    import constants_pkg::*;
-
+module register_file #( parameter DATA_BITS = constants_pkg::REGISTER_DATA_BITS ) (
     input wire clk,
     input wire reset_n,
     // register reading
-    input bit [3:0] rd0_addr,
-    input bit rd0_enable,
+    input logic [3:0] rd0_addr,
+    input logic rd0_enable,
     output logic [DATA_BITS-1:0] rd0_data,
     // register reading
-    input bit [3:0] rd1_addr,
-    input bit rd1_enable,
+    input logic [3:0] rd1_addr,
+    input logic rd1_enable,
     output logic [DATA_BITS-1:0] rd1_data,
     // register writing
-    input bit [3:0] wr_addr,
-    input bit wr_enable,
+    input logic [3:0] wr_addr,
+    input logic wr_enable,
     input logic [DATA_BITS-1:0] wr_data
     );
+
+    import constants_pkg::*;
 
     wire [15:0][DATA_BITS-1:0] r_data_out0;
     wire [15:0][DATA_BITS-1:0] r_data_out1;

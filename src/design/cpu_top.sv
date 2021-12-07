@@ -1,8 +1,6 @@
 `include "execution_unit.sv"
 `include "memory_io_mux.sv"
 `include "pwm_driver.sv"
-`include "ram.sv"
-`include "rom.sv"
 
 module cpu_top (
     input wire clk,
@@ -16,6 +14,8 @@ module cpu_top (
     input  wire int_req,
     output wire int_ack
 );
+    import constants_pkg::*;
+
     wire [MEMORY_ADDRESS_BITS-1:0] exec_unit_rd_mem_addr;
     wire [MEMORY_DATA_BITS-1:0] exec_unit_rd_mem_data;
     wire [MEMORY_ADDRESS_BITS-1:0] exec_unit_wr_mem_addr;

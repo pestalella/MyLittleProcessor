@@ -1,11 +1,9 @@
 `ifndef MEMORY_IF_SV
 `define MEMORY_IF_SV
 
-`include "constants_pkg.sv"
-
-import constants_pkg::*;
-
 interface memory_if();
+    import constants_pkg::*;
+
     wire rd_en;
     wire [MEMORY_ADDRESS_BITS-1:0] rd_addr;
     logic [MEMORY_DATA_BITS-1:0] rd_data;

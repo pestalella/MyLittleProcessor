@@ -2,7 +2,7 @@
 `define ISA_DEFINITION_SV
 
 package isa_pkg;
-    typedef enum bit [3:0] {
+    typedef enum logic [3:0] {
         MOVIR = 4'b0000,
         LOAD  = 4'b0010,
         STORE = 4'b0011,
@@ -15,7 +15,7 @@ package isa_pkg;
         JMP   = 4'b1010,
         CLI   = 4'b1011,
         STI   = 4'b1100,
-        RETI  = 4'b1101,       
+        RETI  = 4'b1101,
         NOP   = 4'b1111
     } OpCode;
 endpackage

@@ -1,12 +1,11 @@
-`include "pwm_driver.sv"
 
 module tb_pwm_driver();
-    bit clk;
-    bit reset_n;
-    bit set_cutoff_en;
-    bit [7:0] cutoff_value;
-    bit [7:0] counter;
-    bit pwm_out;
+    logic clk;
+    logic reset_n;
+    logic set_cutoff_en;
+    logic [7:0] cutoff_value;
+    logic [7:0] counter;
+    logic pwm_out;
 
     pwm_driver dut(
         .clk(clk),

@@ -37,7 +37,7 @@ module mux8to1 #(parameter DATA_BITS = 8) (
     input wire [DATA_BITS-1:0] in7,
     output wire [DATA_BITS-1:0] out
     );
-    bit[DATA_BITS-1:0] low_sel;
+    logic[DATA_BITS-1:0] low_sel;
     mux4to1 #(.DATA_BITS(DATA_BITS)) low_half(
         .sel(sel[1:0]),
         .in0(in0),
@@ -46,7 +46,7 @@ module mux8to1 #(parameter DATA_BITS = 8) (
         .in3(in3),
         .out(low_sel)
     );
-    bit[DATA_BITS-1:0] high_sel;
+    logic[DATA_BITS-1:0] high_sel;
     mux4to1 #(.DATA_BITS(DATA_BITS)) high_half(
         .sel(sel[1:0]),
         .in0(in4),
@@ -84,7 +84,7 @@ module mux16to1 #(parameter DATA_BITS = 8) (
 
     output wire [DATA_BITS-1:0] out
     );
-    bit[DATA_BITS-1:0] low_sel;
+    logic[DATA_BITS-1:0] low_sel;
     mux8to1 #(.DATA_BITS(DATA_BITS)) low_half(
         .sel(sel[2:0]),
         .in0(in0),
@@ -97,7 +97,7 @@ module mux16to1 #(parameter DATA_BITS = 8) (
         .in7(in7),
         .out(low_sel)
     );
-    bit[DATA_BITS-1:0] high_sel;
+    logic[DATA_BITS-1:0] high_sel;
     mux8to1 #(.DATA_BITS(DATA_BITS)) high_half(
         .sel(sel[2:0]),
         .in0(in8),
@@ -118,7 +118,7 @@ module mux16to1 #(parameter DATA_BITS = 8) (
 endmodule
 
 module demux1to8 #(parameter DATA_BITS = 8) (
-    input bit [2:0] sel,
+    input logic [2:0] sel,
     input logic [DATA_BITS-1:0] in,
     output logic [DATA_BITS-1:0] out0,
     output logic [DATA_BITS-1:0] out1,
@@ -141,7 +141,7 @@ module demux1to8 #(parameter DATA_BITS = 8) (
 endmodule
 
 module demux1to16 #(parameter DATA_BITS = 8) (
-    input bit [3:0] sel,
+    input logic [3:0] sel,
     input logic [DATA_BITS-1:0] in,
     output logic [DATA_BITS-1:0] out0,
     output logic [DATA_BITS-1:0] out1,

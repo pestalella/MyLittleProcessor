@@ -1,12 +1,5 @@
-`include "constants_pkg.sv"
-`include "execution_unit.sv"
-`include "isa_definition.sv"
-`include "memory_bus_checker.sv"
-`include "memory_driver.sv"
-`include "memory_if.sv"
-`include "regfile_if.sv"
-`include "regfile_mon.sv"
-`include "regfile_sb.sv"
+`timescale 1ns / 1ps
+
 `include "regfile_trans.sv"
 
 import constants_pkg::*;
@@ -64,7 +57,6 @@ module tb_exec_unit ();
     logic wr_ram_en;
     logic [MEMORY_ADDRESS_BITS-1:0] wr_ram_addr;
     logic [MEMORY_DATA_BITS-1:0] wr_ram_data;
-
 
     memory_if mem_if();
 

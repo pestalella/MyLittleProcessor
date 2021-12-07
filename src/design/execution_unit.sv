@@ -14,12 +14,12 @@ module exec_unit #(parameter DATA_BITS = 8) (
     input  wire reset_n,
 
     output wire rd_ram_en,
-    output wire [MEMORY_ADDRESS_BITS-1:0] rd_ram_addr,
-    input  wire [MEMORY_DATA_BITS-1:0] rd_ram_data,
+    output wire [constants_pkg::MEMORY_ADDRESS_BITS-1:0] rd_ram_addr,
+    input  wire [constants_pkg::MEMORY_DATA_BITS-1:0] rd_ram_data,
 
     output wire wr_ram_en,
-    output wire [MEMORY_ADDRESS_BITS-1:0] wr_ram_addr,
-    output wire [MEMORY_DATA_BITS-1:0] wr_ram_data,
+    output wire [constants_pkg::MEMORY_ADDRESS_BITS-1:0] wr_ram_addr,
+    output wire [constants_pkg::MEMORY_DATA_BITS-1:0] wr_ram_data,
 
     input  wire int_req,
     output wire int_ack
@@ -30,6 +30,8 @@ module exec_unit #(parameter DATA_BITS = 8) (
     logic [31:0] timestamp_counter;
     logic [INSTRUCTION_POINTER_BITS-1:0] pc;
     logic [INSTRUCTION_POINTER_BITS-1:0] isr_saved_pc;
+    wire [INSTRUCTION_POINTER_BITS-1:0] next_pc_input;
+    logic [INSTRUCTION_POINTER_BITS-1:0] jump_dest;
 
     logic [15:0] ir;
     logic carry_flag;
@@ -270,7 +272,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     endfunction
 
 
-    typedef enum bit [1:0] {
+    typedef enum logic [1:0] {
         INT_IDLE,
         INT_REQUESTED,
         INT_SAVE_PC,
@@ -279,7 +281,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
     InterruptStage int_state;
 
-    enum bit [2:0] {
+    enum logic [2:0] {
         RESET            = 0,
         NEXT_INSTRUCTION = 1,
         JUMP_TARGET      = 2,
@@ -289,8 +291,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
         RESERVED_        = 6,
         RESERVED__       = 7
     } pc_offset_sel;
-    wire [INSTRUCTION_POINTER_BITS-1:0] next_pc_input;
-    logic [INSTRUCTION_POINTER_BITS-1:0] jump_dest;
 
     mux8to1 #(.DATA_BITS(INSTRUCTION_POINTER_BITS))
         pc_offset_mux(.sel(pc_offset_sel),

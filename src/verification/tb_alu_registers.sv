@@ -1,19 +1,20 @@
 `timescale 1ns / 1ps
 
-import constants_pkg::*;
-
 module tb_alu_registers();
-    bit clk;
-    bit reset_n;
+
+    import constants_pkg::*;
+
+    logic clk;
+    logic reset_n;
 
     always begin
         #5 clk = !clk;
     end
 
-    bit [2:0] addr_a;
-    bit [2:0] addr_b;
-    bit [2:0] addr_r;
-    bit [7:0] data_in;
+    logic [2:0] addr_a;
+    logic [2:0] addr_b;
+    logic [2:0] addr_r;
+    logic [7:0] data_in;
 //    logic [7:0] data_out;
     constants_pkg::ALUOp op;
 
@@ -27,7 +28,7 @@ module tb_alu_registers();
 //        .data_out(data_out),
         .op(op));
 
-    task check_register_value(input bit [2:0] reg_addr, input bit [7:0] expected_value);
+    task check_register_value(input logic [2:0] reg_addr, input logic [7:0] expected_value);
         @(posedge clk) addr_a = reg_addr;
         op = REG_READ;
         @(posedge clk) begin

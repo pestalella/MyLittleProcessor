@@ -6,8 +6,6 @@
 `include "constants_pkg.sv"
 
 module alu_registers #( parameter DATA_BITS = 8 ) (
-    import constants_pkg::*;
-
     input wire clk,
     input wire reset_n,
     input wire [3:0] addr_a,
@@ -18,13 +16,15 @@ module alu_registers #( parameter DATA_BITS = 8 ) (
     input constants_pkg::ALUOp op
     );
 
+    import constants_pkg::*;
+
     logic subtract;
     logic carry;
     wire [DATA_BITS-1:0] alu_input_a, alu_input_b, alu_output, register_file_input;
     logic rd0_enable, rd1_enable, wr_enable;
     logic [3:0] rd0_addr, rd1_addr, wr_addr;
 
-    bit reg_input_sel;
+    logic reg_input_sel;
 
     alu #(.DATA_BITS(DATA_BITS))
         arith_unit(.a(alu_input_a),
