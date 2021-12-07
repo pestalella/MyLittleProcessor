@@ -253,11 +253,6 @@ end
 
 logic reset_n;
 
-logic rd_ram_en;
-logic [MEMORY_ADDRESS_BITS-1:0] rd_ram_addr;
-logic [MEMORY_DATA_BITS-1:0] rd_ram_data;
-
-logic wr_ram_en;
 logic [MEMORY_ADDRESS_BITS-1:0] wr_ram_addr;
 logic [MEMORY_DATA_BITS-1:0] wr_ram_data;
 
@@ -317,6 +312,7 @@ initial begin
     repeat (2) begin
         @(posedge clk);
     end
+    eu_if.int_req <= 0;
     reset_n <= 1;
 
     t0 = new;
