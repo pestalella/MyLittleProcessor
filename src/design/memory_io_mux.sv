@@ -3,9 +3,9 @@
 
 `include "constants_pkg.sv"
 
-import constants_pkg::*;
-
 module memory_io_mux(
+    import constants_pkg::*;
+
     input wire clk,
 
     input wire rd_mem_en,
@@ -78,7 +78,6 @@ module memory_io_mux(
     assign out_port1 = out_port1_reg;
     assign out_port2 = out_port2_reg;
     assign out_port3 = out_port3_reg;
-
 endmodule
 
 `endif

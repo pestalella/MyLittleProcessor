@@ -15,7 +15,6 @@ module cpu_top (
 
     input  wire int_req,
     output wire int_ack
-
 );
     wire [MEMORY_ADDRESS_BITS-1:0] exec_unit_rd_mem_addr;
     wire [MEMORY_DATA_BITS-1:0] exec_unit_rd_mem_data;

@@ -5,9 +5,9 @@
 
 `include "constants_pkg.sv"
 
-import constants_pkg::*;
-
 module alu_registers #( parameter DATA_BITS = 8 ) (
+    import constants_pkg::*;
+
     input wire clk,
     input wire reset_n,
     input wire [3:0] addr_a,

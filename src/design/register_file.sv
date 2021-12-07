@@ -7,9 +7,9 @@
 `include "muxers.sv"
 `include "register.sv"
 
-import constants_pkg::*;
-
 module register_file #( parameter DATA_BITS = REGISTER_DATA_BITS ) (
+    import constants_pkg::*;
+
     input wire clk,
     input wire reset_n,
     // register reading

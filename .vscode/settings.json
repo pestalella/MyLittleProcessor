@@ -1,4 +1,5 @@
 {
     "verilog.ctags.path": "I:\\Downloads\\ctags-2020-01-12_feffe43a-x64",
-    "verilog.linting.linter": "iverilog"
+    "verilog.linting.linter": "iverilog",
+    "editor.detectIndentation": false
 }
