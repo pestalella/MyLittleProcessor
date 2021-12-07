@@ -9,9 +9,6 @@
 `include "muxers.sv"
 `include "register_file.sv"
 
-import constants_pkg::*;
-import isa_pkg::*;
-
 module exec_unit #(parameter DATA_BITS = 8) (
     input  wire clk,
     input  wire reset_n,
@@ -27,18 +24,22 @@ module exec_unit #(parameter DATA_BITS = 8) (
     input  wire int_req,
     output wire int_ack
 );
-    bit [31:0] timestamp_counter;
-    bit [INSTRUCTION_POINTER_BITS-1:0] pc;
-    bit [INSTRUCTION_POINTER_BITS-1:0] isr_saved_pc;
-    bit [15:0] ir;
-    bit carry_flag;
-    bit zero_flag;
+    import constants_pkg::*;
+    import isa_pkg::*;
+
+    logic [31:0] timestamp_counter;
+    logic [INSTRUCTION_POINTER_BITS-1:0] pc;
+    logic [INSTRUCTION_POINTER_BITS-1:0] isr_saved_pc;
+
+    logic [15:0] ir;
+    logic carry_flag;
+    logic zero_flag;
     logic rd_mem_en;
     logic [MEMORY_ADDRESS_BITS-1:0] rd_mem_addr;
     logic mem_wr_en;
     logic [MEMORY_DATA_BITS-1:0] wr_mem_data;
     logic [MEMORY_ADDRESS_BITS-1:0] wr_mem_addr;
-    bit mem_wr_in_progress;
+    logic mem_wr_in_progress;
     ExecutionStage state;
     logic subtract;
     logic alu_carry;
@@ -49,19 +50,19 @@ module exec_unit #(parameter DATA_BITS = 8) (
     wire [REGISTER_DATA_BITS-1:0] register_file_input;
     wire [REGISTER_DATA_BITS-1:0] regfile_rd0_data;
     wire [REGISTER_DATA_BITS-1:0] regfile_rd1_data;
-    bit [REGISTER_DATA_BITS-1:0] inst_immediate;
-    bit [REGISTER_DATA_BITS-1:0] load_mem;
-    bit [3:0] reg_rd0_addr;
-    bit [3:0] reg_rd1_addr;
-    bit [3:0] reg_wr_addr;
-    bit reg_rd0_en;
-    bit reg_rd1_en;
-    bit reg_wr_en;
-    bit save_alu_flags;
-    bit int_in_progress;
-    bit prev_int_req;
-    enum bit {IMMEDIATE, REGISTER_FILE} alu_inputB_sel;
-    typedef enum bit[1:0] {ALU_OUTPUT = 0,
+    logic [REGISTER_DATA_BITS-1:0] inst_immediate;
+    logic [REGISTER_DATA_BITS-1:0] load_mem;
+    logic [3:0] reg_rd0_addr;
+    logic [3:0] reg_rd1_addr;
+    logic [3:0] reg_wr_addr;
+    logic reg_rd0_en;
+    logic reg_rd1_en;
+    logic reg_wr_en;
+    logic save_alu_flags;
+    logic int_in_progress;
+    logic prev_int_req;
+    enum logic {IMMEDIATE, REGISTER_FILE} alu_inputB_sel;
+    typedef enum logic[1:0] {ALU_OUTPUT = 0,
                            INST_IMMEDIATE = 1,
                            MEM_LOAD = 2,
                            REG_FILE_RD0 = 3} RegisterInputSelection;
@@ -166,7 +167,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
             LOAD: begin
                 reg_wr_addr    <= ir[11:8];
-                // Prepare next transaction
+                // Set address to load from
                 rd_mem_addr    <= rd_ram_data[7:0];
             end
             STORE: begin
@@ -211,22 +212,16 @@ module exec_unit #(parameter DATA_BITS = 8) (
     endfunction
 
 
-    function void execute_instruction;
+    function void display_instruction;
         case (ir[15:12])
             MOVIR: begin
                 $display("mov r%0d #%h", ir[11:8], ir[7:0]);
             end
             LOAD: begin
                 $display("load r%0d @0x%02h", ir[11:8], ir[7:0]);
-                load_mem  <= rd_ram_data;
             end
             STORE: begin
                 $display("store @0x%02h r%0d", ir[7:0], ir[11:8]);
-                // Launch memory write
-                wr_mem_addr        <= ir[7:0];
-                wr_mem_data        <= regfile_rd0_data;
-                mem_wr_in_progress <= 1;
-                mem_wr_en          <= 1;
             end
             ADDRR: begin
                 $display("add r%0d r%0d r%0d", ir[11:8], ir[7:4], ir[3:0]);
@@ -266,7 +261,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     endfunction
 
 
-    function void fecth_start;
+    function void fetch_start;
         // Prepare to read next instruction
         rd_mem_addr   <= next_pc_input;
         mem_wr_en     <= 0;
@@ -295,7 +290,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
         RESERVED__       = 7
     } pc_offset_sel;
     wire [INSTRUCTION_POINTER_BITS-1:0] next_pc_input;
-    bit [INSTRUCTION_POINTER_BITS-1:0] jump_dest;
+    logic [INSTRUCTION_POINTER_BITS-1:0] jump_dest;
 
     mux8to1 #(.DATA_BITS(INSTRUCTION_POINTER_BITS))
         pc_offset_mux(.sel(pc_offset_sel),
@@ -385,7 +380,18 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     // Program counter updates happened in the previous stage
                     // No updates until next instruction
                     pc_offset_sel <= NO_UPDATE;
-                    execute_instruction();
+                    display_instruction();
+
+                    if (ir[15:12] == LOAD) begin
+                        load_mem  <= rd_ram_data;
+                    end else if (ir[15:12] == STORE) begin
+                        // Launch memory write
+                        wr_mem_addr        <= ir[7:0];
+                        wr_mem_data        <= regfile_rd0_data;
+                        mem_wr_in_progress <= 1;
+                        mem_wr_en          <= 1;
+                    end
+
                     save_alu_flags <= instr_arithmetic;
                     // save ALU flags from previous instruction if necessary
                     zero_flag     <= instr_arithmetic ? alu_zero : zero_flag;
@@ -396,21 +402,21 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     else if (ir[15:12] == STORE)
                         state      <= STORE_STAGE;
                     else
-                        fecth_start();
+                        fetch_start();
                     if (int_state == INT_JUMP_ISR) begin
                         int_state <= INT_IDLE;
                     end
                 end
                 REGISTER_WB: begin
-                    fecth_start();
+                    fetch_start();
                 end
                 STORE_STAGE: begin
                     mem_wr_en          <= 0;
                     mem_wr_in_progress <= 0;
-                    fecth_start();
+                    fetch_start();
                 end
                 IDLE: begin
-                    fecth_start();
+                    fetch_start();
                 end
                 default: begin
                     state <= IDLE;
