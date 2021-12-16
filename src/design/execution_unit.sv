@@ -38,7 +38,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     logic zero_flag;
     logic rd_mem_en;
     logic [MEMORY_ADDRESS_BITS-1:0] rd_mem_addr;
-    logic mem_wr_en;
+    logic wr_mem_en;
     logic [MEMORY_DATA_BITS-1:0] wr_mem_data;
     logic [MEMORY_ADDRESS_BITS-1:0] wr_mem_addr;
     logic mem_wr_in_progress;
@@ -49,7 +49,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     wire alu_zero_wire;
     wire [REGISTER_DATA_BITS-1:0] alu_input_b;
     wire [REGISTER_DATA_BITS-1:0] alu_output;
-    wire [REGISTER_DATA_BITS-1:0] register_file_input;
+    wire [REGISTER_DATA_BITS-1:0] reg_wr_data;
     wire [REGISTER_DATA_BITS-1:0] regfile_rd0_data;
     wire [REGISTER_DATA_BITS-1:0] regfile_rd1_data;
     logic [REGISTER_DATA_BITS-1:0] inst_immediate;
@@ -71,7 +71,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     RegisterInputSelection reg_input_sel;
 
     assign rd_ram_en = rd_mem_en;
-    assign wr_ram_en = mem_wr_en;
+    assign wr_ram_en = wr_mem_en;
     assign rd_ram_addr = rd_mem_addr;
     assign wr_ram_addr = wr_mem_addr;
     assign wr_ram_data = mem_wr_in_progress ? wr_mem_data : {DATA_BITS{1'bz}}; // To drive the inout net
@@ -105,21 +105,21 @@ module exec_unit #(parameter DATA_BITS = 8) (
 
                   .wr_enable(reg_wr_en),
                   .wr_addr(reg_wr_addr),
-                  .wr_data(register_file_input));
+                  .wr_data(reg_wr_data));
 
     mux4to1 reg_input_mux(.sel(reg_input_sel),
                               .in0(alu_output),
                               .in1(inst_immediate),
                               .in2(load_mem),
                               .in3(regfile_rd0_data),
-                              .out(register_file_input));
+                              .out(reg_wr_data));
 
     // Mostly to show in waves what the current instruction is
     OpCode current_inst;
 
     logic instr_is_movir, instr_is_load, instr_is_store, instr_is_addrr, instr_is_addi,
           instr_is_subrr, instr_is_subi, instr_is_jnzi, instr_is_jzr, instr_is_jmp,
-          int_is_cli, instr_is_sti, instr_is_reti, instr_is_nop;
+          instr_is_cli, instr_is_sti, instr_is_reti, instr_is_nop;
 
     logic instr_arithmetic;
 
@@ -145,14 +145,15 @@ module exec_unit #(parameter DATA_BITS = 8) (
     assign reg_rd0_en = instr_is_store |
                         instr_is_addrr | instr_is_addi |
                         instr_is_subrr | instr_is_subi;
-    assign reg_rd1_en = instr_is_addrr | instr_is_subrr;
+    assign reg_rd1_en = instr_is_addrr | instr_is_subrr |
+                        ((state == REGISTER_FETCH) && (instr_is_load | instr_is_store));
 
-    assign reg_wr_en = ((state ==     EXECUTE) &&  instr_is_movir) |
-                       ((state == REGISTER_WB) && (instr_is_load |
-                                                   instr_is_addrr | instr_is_addi |
+    assign reg_wr_en = ((state ==     EXECUTE) &&  instr_is_movir)|
+                       ((state ==  LOAD_STAGE) &&  instr_is_load) |
+                       ((state == REGISTER_WB) && (instr_is_addrr | instr_is_addi |
                                                    instr_is_subrr | instr_is_subi));
-    assign reg_input_sel = ((state == REGISTER_WB) &&  instr_is_load) ? MEM_LOAD :
-                          (((state ==     EXECUTE) && instr_is_movir) ? INST_IMMEDIATE :
+    assign reg_input_sel = ((state == LOAD_STAGE) &&  instr_is_load) ? MEM_LOAD :
+                          (((state ==    EXECUTE) && instr_is_movir) ? INST_IMMEDIATE :
                                                                        ALU_OUTPUT);
 
     assign alu_inputB_sel = (instr_is_addi || instr_is_subi ) && (state == EXECUTE)?
@@ -160,59 +161,37 @@ module exec_unit #(parameter DATA_BITS = 8) (
         REGISTER_FILE;
     assign alu_zero = alu_zero_wire;
 
+    typedef enum logic [1:0] {
+        INT_IDLE,
+        INT_REQUESTED,
+        INT_SAVE_PC,
+        INT_JUMP_ISR
+    } InterruptStage;
 
-    function void request_register_reads;
-        case (ir[15:12])
-            MOVIR: begin
-                reg_wr_addr    <= ir[11:8];
-                inst_immediate <= rd_ram_data[7:0];
-            end
-            LOAD: begin
-                reg_wr_addr    <= ir[11:8];
-                // Set address to load from
-                rd_mem_addr    <= rd_ram_data[7:0];
-            end
-            STORE: begin
-                reg_rd0_addr   <= ir[11:8];
-            end
-            ADDRR: begin
-                reg_rd0_addr   <= rd_ram_data[7:4];
-                reg_rd1_addr   <= rd_ram_data[3:0];
-                reg_wr_addr    <= ir[10:8];
-            end
-            ADDI: begin
-                reg_rd0_addr   <= ir[11:8];
-                reg_wr_addr    <= ir[11:8];
-                inst_immediate <= rd_ram_data[7:0];
-            end
-            SUBRR: begin
-                reg_rd0_addr   <= rd_ram_data[7:4];
-                reg_rd1_addr   <= rd_ram_data[3:0];
-                reg_wr_addr    <= ir[10:8];
-            end
-            SUBI: begin
-                reg_rd0_addr   <= ir[11:8];
-                reg_wr_addr    <= ir[11:8];
-                inst_immediate <= rd_ram_data[7:0];
-            end
-            JNZI: begin
-            end
-            JZR: begin
-            end
-            JMP: begin
-            end
-            CLI: begin
-            end
-            STI: begin
-            end
-            RETI: begin
-            end
-            NOP: begin
-            end
-          default: $display("Invalid opcode %b", ir[15:12]);
-        endcase
-    endfunction
+    InterruptStage int_state;
 
+    enum logic [2:0] {
+        RESET            = 0,
+        NEXT_INSTRUCTION = 1,
+        JUMP_TARGET      = 2,
+        NO_UPDATE        = 3,
+        ISR_TARGET       = 4,
+        ISR_RETURN       = 5,
+        RESERVED_        = 6,
+        RESERVED__       = 7
+    } pc_offset_sel;
+
+    mux8to1 #(.DATA_BITS(INSTRUCTION_POINTER_BITS))
+        pc_offset_mux(.sel(pc_offset_sel),
+                      .in0('0),
+                      .in1(INSTRUCTION_POINTER_BITS'(pc + 2)),
+                      .in2(jump_dest),
+                      .in3(pc),
+                      .in4(constants_pkg::ISR_ADDRESS),
+                      .in5(isr_saved_pc),
+                      .in6({INSTRUCTION_POINTER_BITS{1'b1}}),
+                      .in7({INSTRUCTION_POINTER_BITS{1'b1}}),
+                      .out(next_pc_input));
 
     function void display_instruction;
         case (ir[15:12])
@@ -262,47 +241,67 @@ module exec_unit #(parameter DATA_BITS = 8) (
         endcase
     endfunction
 
+    function void request_register_reads;
+        case (ir[15:12])
+            MOVIR: begin
+                reg_wr_addr    <= ir[11:8];
+                inst_immediate <= rd_ram_data[7:0];
+            end
+            LOAD: begin
+                reg_wr_addr    <= ir[11:8];
+                // Request the value of r0 for the address
+                reg_rd1_addr   <= 0;
+            end
+            STORE: begin
+                reg_rd0_addr   <= ir[11:8];
+                // Request the value of r0 for the address
+                reg_rd1_addr   <= 0;
+            end
+            ADDRR: begin
+                reg_rd0_addr   <= rd_ram_data[7:4];
+                reg_rd1_addr   <= rd_ram_data[3:0];
+                reg_wr_addr    <= ir[10:8];
+            end
+            ADDI: begin
+                reg_rd0_addr   <= ir[11:8];
+                reg_wr_addr    <= ir[11:8];
+                inst_immediate <= rd_ram_data[7:0];
+            end
+            SUBRR: begin
+                reg_rd0_addr   <= rd_ram_data[7:4];
+                reg_rd1_addr   <= rd_ram_data[3:0];
+                reg_wr_addr    <= ir[10:8];
+            end
+            SUBI: begin
+                reg_rd0_addr   <= ir[11:8];
+                reg_wr_addr    <= ir[11:8];
+                inst_immediate <= rd_ram_data[7:0];
+            end
+            JNZI: begin
+            end
+            JZR: begin
+            end
+            JMP: begin
+            end
+            CLI: begin
+            end
+            STI: begin
+            end
+            RETI: begin
+            end
+            NOP: begin
+            end
+          default: $display("Invalid opcode %b", ir[15:12]);
+        endcase
+    endfunction
 
     function void fetch_start;
         // Prepare to read next instruction
         rd_mem_addr   <= next_pc_input;
-        mem_wr_en     <= 0;
+        wr_mem_en     <= 0;
         rd_mem_en     <= 1;
-        state         <= FETCH_END;
+        state         <= INSTR_FETCH;
     endfunction
-
-
-    typedef enum logic [1:0] {
-        INT_IDLE,
-        INT_REQUESTED,
-        INT_SAVE_PC,
-        INT_JUMP_ISR
-    } InterruptStage;
-
-    InterruptStage int_state;
-
-    enum logic [2:0] {
-        RESET            = 0,
-        NEXT_INSTRUCTION = 1,
-        JUMP_TARGET      = 2,
-        NO_UPDATE        = 3,
-        ISR_TARGET       = 4,
-        ISR_RETURN       = 5,
-        RESERVED_        = 6,
-        RESERVED__       = 7
-    } pc_offset_sel;
-
-    mux8to1 #(.DATA_BITS(INSTRUCTION_POINTER_BITS))
-        pc_offset_mux(.sel(pc_offset_sel),
-                      .in0('0),
-                      .in1(INSTRUCTION_POINTER_BITS'(pc + 2)),
-                      .in2(jump_dest),
-                      .in3(pc),
-                      .in4(constants_pkg::ISR_ADDRESS),
-                      .in5(isr_saved_pc),
-                      .in6({INSTRUCTION_POINTER_BITS{1'b1}}),
-                      .in7({INSTRUCTION_POINTER_BITS{1'b1}}),
-                      .out(next_pc_input));
 
     always @(posedge clk) begin
         if (!reset_n) begin
@@ -320,10 +319,11 @@ module exec_unit #(parameter DATA_BITS = 8) (
         if (!reset_n) begin
             $display("RESET");
             pc_offset_sel      <= RESET;
+            ir                 <= '0;
             rd_mem_addr        <= '0;
             rd_mem_en          <= 0;
             wr_mem_addr        <= '0;
-            mem_wr_en          <= 0;
+            wr_mem_en          <= 0;
             mem_wr_in_progress <= 0;
             reg_rd0_addr       <= '0;
             reg_rd1_addr       <= '0;
@@ -348,7 +348,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
             end
             prev_int_req <= int_req;
             case (state)
-                FETCH_END: begin
+                INSTR_FETCH: begin
                     // Now read the data from the completed read transaction
                     ir[15:8]      <= rd_ram_data;
                     current_inst  <= OpCode'(rd_ram_data[7:4]);
@@ -364,7 +364,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     jump_dest     <= rd_ram_data;
                     pc_offset_sel <= (int_state == INT_JUMP_ISR)?
                         ISR_TARGET :
-                        ((ir[15:12] == RETI)?
+                        (instr_is_reti?
                             ISR_RETURN :
                             ((instr_is_jnzi & ~zero_flag) ?
                                 JUMP_TARGET :
@@ -372,9 +372,22 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     if (int_state == INT_REQUESTED) begin
                         int_state <= INT_JUMP_ISR;
                     end
+                    if (instr_is_load) begin
+                        // Set address to load from
+                        rd_mem_addr         <= {regfile_rd1_data, rd_ram_data};
+                        rd_mem_en           <= 1;
+                    end else begin
+                        rd_mem_en           <= 0;
+                    end
+
+                    if (instr_is_store) begin
+                        // We now have the address, but we need to wait for the
+                        // register value to write
+                        wr_mem_addr         <= {regfile_rd1_data, rd_ram_data};
+                    end
+
                     request_register_reads();
-                    rd_mem_en     <= 0;
-                    state         <= EXECUTE;
+                    state     <= EXECUTE;
                 end
                 EXECUTE: begin
                     // Program counter updates happened in the previous stage
@@ -382,36 +395,37 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     pc_offset_sel <= NO_UPDATE;
                     display_instruction();
 
-                    if (ir[15:12] == LOAD) begin
-                        load_mem  <= rd_ram_data;
-                    end else if (ir[15:12] == STORE) begin
-                        // Launch memory write
-                        wr_mem_addr        <= ir[7:0];
-                        wr_mem_data        <= regfile_rd0_data;
-                        mem_wr_in_progress <= 1;
-                        mem_wr_en          <= 1;
-                    end
-
                     save_alu_flags <= instr_arithmetic;
                     // save ALU flags from previous instruction if necessary
                     zero_flag     <= instr_arithmetic ? alu_zero : zero_flag;
                     carry_flag    <= instr_arithmetic ? alu_carry : carry_flag;
 
-                    if (instr_arithmetic || instr_is_load)
-                        state      <= REGISTER_WB;
-                    else if (ir[15:12] == STORE)
-                        state      <= STORE_STAGE;
-                    else
-                        fetch_start();
                     if (int_state == INT_JUMP_ISR) begin
                         int_state <= INT_IDLE;
                     end
+
+                    if (instr_is_load) begin
+                        // Get the value from memory
+                        load_mem  <= rd_ram_data;
+                    end else if (instr_is_store) begin
+                        // Launch memory write
+                        wr_mem_data         <= regfile_rd0_data;
+                        mem_wr_in_progress  <= 1;
+                        wr_mem_en           <= 1;
+                        rd_mem_en           <= 0;
+                        state               <= STORE_STAGE;
+                    end
+
+                    if (instr_arithmetic)
+                        state      <= REGISTER_WB;
+                    else
+                        fetch_start();
                 end
                 REGISTER_WB: begin
                     fetch_start();
                 end
                 STORE_STAGE: begin
-                    mem_wr_en          <= 0;
+                    wr_mem_en          <= 0;
                     mem_wr_in_progress <= 0;
                     fetch_start();
                 end

@@ -271,23 +271,26 @@ exec_unit #(.DATA_BITS(8)) dut(
     .int_ack(eu_if.int_ack)
 );
 
-// ram memory(
-//     .clk(clk),
-//     .rd_en(eu_if.rd_en),
-//     .rd_addr(eu_if.rd_addr),
-//     .rd_data(eu_if.rd_data),
-
-//     .wr_en(eu_if.wr_en),
-//     .wr_addr(eu_if.wr_addr),
-//     .wr_data(eu_if.wr_data)
-// );
-
-rom #(.ADDR_BITS(MEMORY_ADDRESS_BITS),
+ram #(.ADDR_BITS(MEMORY_ADDRESS_BITS),
       .DATA_BITS(8),
       .memory_file("pwm.mem"))
-    memory(.rd_en(eu_if.rd_en),
-           .rd_addr(eu_if.rd_addr),
-           .rd_data(eu_if.rd_data));
+memory(
+    .clk(clk),
+    .rd_en(eu_if.rd_en),
+    .rd_addr(eu_if.rd_addr),
+    .rd_data(eu_if.rd_data),
+
+    .wr_en(eu_if.wr_en),
+    .wr_addr(eu_if.wr_addr),
+    .wr_data(eu_if.wr_data)
+);
+
+// rom #(.ADDR_BITS(MEMORY_ADDRESS_BITS),
+//       .DATA_BITS(8),
+//       .memory_file("pwm.mem"))
+//     memory(.rd_en(eu_if.rd_en),
+//            .rd_addr(eu_if.rd_addr),
+//            .rd_data(eu_if.rd_data));
 
 
 bind dut exec_unit_pc_if pc_if(

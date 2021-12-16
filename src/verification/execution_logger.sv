@@ -19,7 +19,7 @@ module execution_logger (
     import constants_pkg::*;
 
     always @(posedge clk) begin
-        if (state == FETCH_END) begin
+        if (state == INSTR_FETCH) begin
             $display("Memory: %h %h %h %h %h %h %h %h r0=%h r1=%h r2=%h r3=%h r4=%h r5=%h r6=%h r7=%h",
                 memory[0:3], memory[4:7],
                 memory[8:11], memory[12:15],

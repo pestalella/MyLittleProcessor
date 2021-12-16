@@ -5,7 +5,7 @@
 
 package constants_pkg;
     typedef enum logic [1:0] {REG_READ, REG_WRITE, ADD, SUB} ALUOp;
-    typedef enum logic [2:0] {IDLE, FETCH_END, REGISTER_FETCH,
+    typedef enum logic [2:0] {IDLE, INSTR_FETCH, REGISTER_FETCH,
                             EXECUTE, REGISTER_WB, LOAD_STAGE, STORE_STAGE} ExecutionStage;
     parameter int REGISTER_ADDRESS_BITS = 3;
     parameter int REGISTER_DATA_BITS = 8;

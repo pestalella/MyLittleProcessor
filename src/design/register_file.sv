@@ -29,6 +29,11 @@ module register_file #( parameter DATA_BITS = constants_pkg::REGISTER_DATA_BITS 
     wire [15:0][DATA_BITS-1:0] r_data_out0;
     wire [15:0][DATA_BITS-1:0] r_data_out1;
     wire [15:0][DATA_BITS-1:0] r_data_in;
+    logic [DATA_BITS-1:0] rd0_data_z;
+    logic [DATA_BITS-1:0] rd1_data_z;
+
+    assign rd0_data = rd0_enable? rd0_data_z : '0;
+    assign rd1_data = rd1_enable? rd1_data_z : '0;
 
     mux16to1 rd0_mux(.sel(rd0_addr),
                     .in0(r_data_out0[0]),
@@ -47,7 +52,7 @@ module register_file #( parameter DATA_BITS = constants_pkg::REGISTER_DATA_BITS 
                     .in13(r_data_out0[13]),
                     .in14(r_data_out0[14]),
                     .in15(r_data_out0[15]),
-                    .out(rd0_data));
+                    .out(rd0_data_z));
 
     mux16to1 rd1_mux(.sel(rd1_addr),
                     .in0(r_data_out1[0]),
@@ -66,7 +71,7 @@ module register_file #( parameter DATA_BITS = constants_pkg::REGISTER_DATA_BITS 
                     .in13(r_data_out1[13]),
                     .in14(r_data_out1[14]),
                     .in15(r_data_out1[15]),
-                    .out(rd1_data));
+                    .out(rd1_data_z));
 
     demux1to16 wr_demux(.sel(wr_addr),
                     .in(wr_data),
