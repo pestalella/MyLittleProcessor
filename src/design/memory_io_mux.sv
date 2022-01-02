@@ -43,16 +43,16 @@ module memory_io_mux(
     logic [MEMORY_DATA_BITS-1:0] wr_ram_data_reg;
 
     assign wr_ram_en = wr_mem_en &&
-                        ~((wr_mem_addr == 'hfc) |
-                          (wr_mem_addr == 'hfd) |
-                          (wr_mem_addr == 'hfe) |
-                          (wr_mem_addr == 'hff));
+                        ~((wr_mem_addr == 'hfffc) |
+                          (wr_mem_addr == 'hfffd) |
+                          (wr_mem_addr == 'hfffe) |
+                          (wr_mem_addr == 'hffff));
 
     assign rd_ram_en = rd_mem_en &&
-                        ~((rd_mem_addr == 'hfc) |
-                          (rd_mem_addr == 'hfd) |
-                          (rd_mem_addr == 'hfe) |
-                          (rd_mem_addr == 'hff));
+                        ~((rd_mem_addr == 'hfffc) |
+                          (rd_mem_addr == 'hfffd) |
+                          (rd_mem_addr == 'hfffe) |
+                          (rd_mem_addr == 'hffff));
 
     assign wr_ram_addr_reg = wr_mem_addr;
     assign wr_ram_data_reg = wr_mem_data;
@@ -64,10 +64,10 @@ module memory_io_mux(
     assign rd_ram_addr = rd_ram_addr_reg;
     assign rd_mem_data = rd_ram_data_reg;
 
-    assign out_port0_write_en = wr_mem_en && (wr_mem_addr == 'hfc);
-    assign out_port1_write_en = wr_mem_en && (wr_mem_addr == 'hfd);
-    assign out_port2_write_en = wr_mem_en && (wr_mem_addr == 'hfe);
-    assign out_port3_write_en = wr_mem_en && (wr_mem_addr == 'hff);
+    assign out_port0_write_en = wr_mem_en && (wr_mem_addr == 'hfffc);
+    assign out_port1_write_en = wr_mem_en && (wr_mem_addr == 'hfffd);
+    assign out_port2_write_en = wr_mem_en && (wr_mem_addr == 'hfffe);
+    assign out_port3_write_en = wr_mem_en && (wr_mem_addr == 'hffff);
 
     assign out_port0_reg = wr_mem_data;
     assign out_port1_reg = wr_mem_data;
