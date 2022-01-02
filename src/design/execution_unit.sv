@@ -41,7 +41,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
     logic wr_mem_en;
     logic [MEMORY_DATA_BITS-1:0] wr_mem_data;
     logic [MEMORY_ADDRESS_BITS-1:0] wr_mem_addr;
-    logic mem_wr_in_progress;
     ExecutionStage state;
     logic subtract;
     logic alu_carry;
@@ -74,7 +73,7 @@ module exec_unit #(parameter DATA_BITS = 8) (
     assign wr_ram_en = wr_mem_en;
     assign rd_ram_addr = rd_mem_addr;
     assign wr_ram_addr = wr_mem_addr;
-    assign wr_ram_data = mem_wr_in_progress ? wr_mem_data : {DATA_BITS{1'bz}}; // To drive the inout net
+    assign wr_ram_data = wr_mem_data;
 
     alu #(.DATA_BITS(REGISTER_DATA_BITS))
         arith_unit(.clk(clk),
@@ -87,9 +86,9 @@ module exec_unit #(parameter DATA_BITS = 8) (
                    .zero(alu_zero_wire));
 
     mux2to1 alu_inputB_mux(.sel(alu_inputB_sel),
-                               .in0(inst_immediate),
-                               .in1(regfile_rd1_data),
-                               .out(alu_input_b));
+                           .in0(inst_immediate),
+                           .in1(regfile_rd1_data),
+                           .out(alu_input_b));
 
     register_file #(.DATA_BITS(REGISTER_DATA_BITS))
         registers(.clk(clk),
@@ -108,11 +107,11 @@ module exec_unit #(parameter DATA_BITS = 8) (
                   .wr_data(reg_wr_data));
 
     mux4to1 reg_input_mux(.sel(reg_input_sel),
-                              .in0(alu_output),
-                              .in1(inst_immediate),
-                              .in2(load_mem),
-                              .in3(regfile_rd0_data),
-                              .out(reg_wr_data));
+                          .in0(alu_output),
+                          .in1(inst_immediate),
+                          .in2(load_mem),
+                          .in3(regfile_rd0_data),
+                          .out(reg_wr_data));
 
     // Mostly to show in waves what the current instruction is
     OpCode current_inst;
@@ -142,11 +141,14 @@ module exec_unit #(parameter DATA_BITS = 8) (
                               instr_is_subrr | instr_is_subi;
     assign subtract = (state == EXECUTE) && (instr_is_subrr | instr_is_subi);
 
-    assign reg_rd0_en = instr_is_store |
-                        instr_is_addrr | instr_is_addi |
-                        instr_is_subrr | instr_is_subi;
+    assign reg_rd0_en = ((state == EXECUTE) && (
+                            instr_is_store | instr_is_load |
+                            instr_is_addrr | instr_is_addi |
+                            instr_is_subrr | instr_is_subi)) |
+                        ((state == REGISTER_FETCH) && (
+                            instr_is_store));
     assign reg_rd1_en = instr_is_addrr | instr_is_subrr |
-                        ((state == REGISTER_FETCH) && (instr_is_load | instr_is_store));
+                        ((state == REGISTER_FETCH || state == EXECUTE) && (instr_is_load | instr_is_store));
 
     assign reg_wr_en = ((state ==     EXECUTE) &&  instr_is_movir)|
                        ((state ==  LOAD_STAGE) &&  instr_is_load) |
@@ -156,7 +158,8 @@ module exec_unit #(parameter DATA_BITS = 8) (
                           (((state ==    EXECUTE) && instr_is_movir) ? INST_IMMEDIATE :
                                                                        ALU_OUTPUT);
 
-    assign alu_inputB_sel = (instr_is_addi || instr_is_subi ) && (state == EXECUTE)?
+    assign alu_inputB_sel = (instr_is_addi || instr_is_subi ) && (state == EXECUTE) ||
+                            (instr_is_load && (state == REGISTER_FETCH))?
         IMMEDIATE :
         REGISTER_FILE;
     assign alu_zero = alu_zero_wire;
@@ -248,14 +251,16 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 inst_immediate <= rd_ram_data[7:0];
             end
             LOAD: begin
+                // Request addr register
+                reg_rd0_addr   <= rd_ram_data[3:0];
+                reg_rd1_addr   <= rd_ram_data[7:4];
+                // Prepare the dest register for writing
                 reg_wr_addr    <= ir[11:8];
-                // Request the value of r0 for the address
-                reg_rd1_addr   <= 0;
             end
             STORE: begin
-                reg_rd0_addr   <= ir[11:8];
-                // Request the value of r0 for the address
-                reg_rd1_addr   <= 0;
+                // Request addr register
+                reg_rd0_addr   <= rd_ram_data[3:0];
+                reg_rd1_addr   <= rd_ram_data[7:4];
             end
             ADDRR: begin
                 reg_rd0_addr   <= rd_ram_data[7:4];
@@ -324,7 +329,6 @@ module exec_unit #(parameter DATA_BITS = 8) (
             rd_mem_en          <= 0;
             wr_mem_addr        <= '0;
             wr_mem_en          <= 0;
-            mem_wr_in_progress <= 0;
             reg_rd0_addr       <= '0;
             reg_rd1_addr       <= '0;
             reg_wr_addr        <= '0;
@@ -351,8 +355,13 @@ module exec_unit #(parameter DATA_BITS = 8) (
                 INSTR_FETCH: begin
                     // Now read the data from the completed read transaction
                     ir[15:8]      <= rd_ram_data;
-                    current_inst  <= OpCode'(rd_ram_data[7:4]);
-                    // And prepare next transaction
+                    current_inst  <= OpCode'(rd_ram_data[7:4]);   
+
+                    if (rd_ram_data[7:4] == STORE) begin
+                        reg_rd0_addr   <= rd_ram_data[3:0];
+                    end
+                 
+                    // And prepare next instruction byte read                    
                     rd_mem_addr   <= pc + 1;
                     state         <= REGISTER_FETCH;
                 end
@@ -372,18 +381,11 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     if (int_state == INT_REQUESTED) begin
                         int_state <= INT_JUMP_ISR;
                     end
-                    if (instr_is_load) begin
-                        // Set address to load from
-                        rd_mem_addr         <= {regfile_rd1_data, rd_ram_data};
-                        rd_mem_en           <= 1;
-                    end else begin
-                        rd_mem_en           <= 0;
-                    end
 
+                    rd_mem_en     <= 0;
                     if (instr_is_store) begin
-                        // We now have the address, but we need to wait for the
-                        // register value to write
-                        wr_mem_addr         <= {regfile_rd1_data, rd_ram_data};
+                        // Prepare the data to be written to memory
+                        wr_mem_data <= regfile_rd0_data;
                     end
 
                     request_register_reads();
@@ -396,21 +398,17 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     display_instruction();
 
                     save_alu_flags <= instr_arithmetic;
-                    // save ALU flags from previous instruction if necessary
-                    zero_flag     <= instr_arithmetic ? alu_zero : zero_flag;
-                    carry_flag    <= instr_arithmetic ? alu_carry : carry_flag;
 
                     if (int_state == INT_JUMP_ISR) begin
                         int_state <= INT_IDLE;
                     end
 
                     if (instr_is_load) begin
-                        // Get the value from memory
-                        load_mem  <= rd_ram_data;
+                        rd_mem_addr         <= {regfile_rd1_data, regfile_rd0_data};
+                        rd_mem_en           <= 1;
                     end else if (instr_is_store) begin
                         // Launch memory write
-                        wr_mem_data         <= regfile_rd0_data;
-                        mem_wr_in_progress  <= 1;
+                        wr_mem_addr         <= {regfile_rd1_data, regfile_rd0_data};
                         wr_mem_en           <= 1;
                         rd_mem_en           <= 0;
                         state               <= STORE_STAGE;
@@ -421,12 +419,19 @@ module exec_unit #(parameter DATA_BITS = 8) (
                     else
                         fetch_start();
                 end
+                LOAD_STAGE: begin
+                    // Get the value from memory
+                    load_mem  <= rd_ram_data;
+                    fetch_start();
+                end
                 REGISTER_WB: begin
+                    // save ALU flags from previous instruction if necessary
+                    zero_flag     <= instr_arithmetic ? alu_zero : zero_flag;
+                    carry_flag    <= instr_arithmetic ? alu_carry : carry_flag;
                     fetch_start();
                 end
                 STORE_STAGE: begin
                     wr_mem_en          <= 0;
-                    mem_wr_in_progress <= 0;
                     fetch_start();
                 end
                 IDLE: begin
